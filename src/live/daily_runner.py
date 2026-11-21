@@ -29,6 +29,7 @@ from src.ingest.market_data import build_market_panel
 from src.risk.regime import build_regimes
 from src.risk.sizing import calibrate_merton_params, simulate_merton_unit_returns
 from src.transform.feature_engine import build_features
+from src.live.steel_sleeve import load_steel_ledger, run_steel_sleeve
 
 CRACK_Z60_MAX = 1.0
 
@@ -167,44 +168,36 @@ def _rebalance_xle_hedge(
 
     open_df = ledger[ledger["status"] == "OPEN"]
     target_xle = int(open_df["xle_long_shares"].fillna(0).sum()) if not open_df.empty else 0
-
-    try:
-        positions = broker.client.get_all_positions()
-        cur_xle = int(
-            next((float(p.qty) for p in positions if str(p.symbol).upper() == "XLE"), 0)
-        )
-    except Exception as exc:
-        return f"xle-query-err:{exc}"
-
-    delta = target_xle - cur_xle
-    if delta == 0:
-        return f"xle-flat:{cur_xle}"
-
-    cid = f"{as_of_str}_{tag}_XLE_{target_xle}"
-    if delta > 0:
-        res = broker._submit_qty("XLE", delta, OrderSide.BUY, cid)
-    else:
-        res = broker._submit_qty("XLE", abs(delta), OrderSide.SELL, cid)
-    return f"xle:{cur_xle}->{target_xle}({res})"
+    return broker.rebalance_hedge_etf("XLE", target_xle, as_of_str, tag=tag)
 
 
 def _reconcile_positions(
     broker: AlpacaPaperBroker | None,
-    ledger: pd.DataFrame,
+    refiner_ledger: pd.DataFrame,
+    steel_ledger: pd.DataFrame | None = None,
 ) -> tuple[bool, list[str]]:
-    """Compares OPEN ledger shares (signed) against live Alpaca positions."""
+    """Compares OPEN ledger shares (signed) across Refiners + Steel against live Alpaca positions."""
     if broker is None:
         return True, ["LEDGER_ONLY (reconciliation skipped)"]
 
     expected: dict[str, int] = {}
-    if not ledger.empty:
-        open_df = ledger[ledger["status"] == "OPEN"]
-        for _, row in open_df.iterrows():
+    if not refiner_ledger.empty:
+        open_ref = refiner_ledger[refiner_ledger["status"] == "OPEN"]
+        for _, row in open_ref.iterrows():
             tkr = str(row["ticker"]).upper()
             expected[tkr] = expected.get(tkr, 0) - int(row["short_shares"])
-        target_xle = int(open_df["xle_long_shares"].fillna(0).sum())
+        target_xle = int(open_ref["xle_long_shares"].fillna(0).sum())
         if target_xle > 0:
             expected["XLE"] = target_xle
+
+    if steel_ledger is not None and not steel_ledger.empty:
+        open_steel = steel_ledger[steel_ledger["status"] == "OPEN"]
+        for _, row in open_steel.iterrows():
+            tkr = str(row["ticker"]).upper()
+            expected[tkr] = expected.get(tkr, 0) + int(row["long_shares"])
+        target_xme = int(open_steel["xme_short_shares"].fillna(0).sum())
+        if target_xme != 0:
+            expected["XME"] = target_xme
 
     try:
         alp_positions = broker.client.get_all_positions()
@@ -277,9 +270,11 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
 
     # 1. Mark-to-market & auto-close matured OPEN positions
     ledger = load_ledger()
-    reconcile_ok, reconcile_msgs = _reconcile_positions(broker, ledger)
+    steel_ledger = load_steel_ledger()
+    reconcile_ok, reconcile_msgs = _reconcile_positions(broker, ledger, steel_ledger)
     order_errors: list[str] = []
     closed_today: list[str] = []
+    market_open = broker.is_market_open() if broker is not None else False
 
     if not ledger.empty:
         px_today = today_df.set_index("ticker")["adj_close"].to_dict()
@@ -301,7 +296,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
 
             if elapsed >= HOLDING_DAYS:
                 close_note = ""
-                if broker is not None and not dry_run:
+                if broker is not None and not dry_run and market_open:
                     try:
                         c_msgs = broker.close_short_pair(
                             trade_id=str(tr["trade_id"]),
@@ -315,6 +310,9 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
                         order_errors.append(err_msg)
                         print(f"[broker][error] {err_msg}")
                         continue
+                elif broker is not None and not dry_run and not market_open:
+                    close_note = " [MARKET_CLOSED: defer close]"
+                    continue
                 ledger.at[idx, "status"] = "CLOSED"
                 ledger.at[idx, "exit_date"] = as_of_str
                 ledger.at[idx, "realized_pnl_usd"] = round(gross_pnl - est_cost, 2)
@@ -419,7 +417,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
 
     accepted_entries: list[dict] = []
     if new_entries:
-        if broker is not None and not dry_run:
+        if broker is not None and not dry_run and market_open:
             for item in new_entries:
                 tkr = item["ticker"]
                 try:
@@ -439,6 +437,8 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
                     err_msg = f"Entry order failed for {tkr}: {exc}"
                     order_errors.append(err_msg)
                     print(f"[broker][error] {err_msg}")
+        elif broker is not None and not dry_run and not market_open:
+            print("[broker] Market closed; skipping live entry orders.")
         else:
             accepted_entries = new_entries
 
@@ -446,7 +446,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
             ledger = pd.concat([ledger, pd.DataFrame(accepted_entries)], ignore_index=True)
 
     xle_rebal_status = "SKIP"
-    if broker is not None and not dry_run and (closed_today or accepted_entries):
+    if broker is not None and not dry_run and market_open and (closed_today or accepted_entries):
         try:
             xle_rebal_status = _rebalance_xle_hedge(broker, ledger, as_of_str, tag="REBAL")
         except APIError as exc:
@@ -516,7 +516,18 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     report = "\n".join(lines)
     print(report)
 
-    if accepted_entries or closed_today or not reconcile_ok or order_errors:
+    # 5. Run Modular Steel Long Q5 Sleeve
+    steel_res = run_steel_sleeve(
+        broker=broker,
+        base_equity=base_equity,
+        skip_ingest=skip_ingest,
+        dry_run=dry_run,
+    )
+    if steel_res.get("order_errors"):
+        order_errors.extend(steel_res["order_errors"])
+
+    steel_activity = bool(steel_res.get("accepted_entries") or steel_res.get("closed_today"))
+    if accepted_entries or closed_today or not reconcile_ok or order_errors or steel_activity:
         send_webhook(report)
 
 

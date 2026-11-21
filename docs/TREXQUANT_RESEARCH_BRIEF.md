@@ -113,13 +113,13 @@ Evaluated across **10 staggered non-overlapping sub-books (offsets 0–9)**, str
 * **2022 Turnaround:** Under `crack_z60 <= 1.0`, 2022 flipped from `-51.7 bps` to **`+358.3 bps` (77.3% WR)** by standing aside during Ukraine-war margin explosions.
 * **Why Simple Physics Beat ML:** On a thin 7-ticker cross-section, a 11-feature `Ridge + HistGradientBoosting` ensemble degraded OOS non-overlapping IC to `+0.0288` ($p = 0.5038$) and cut Sharpe from `0.39` to `0.12`.
 * **EIA Macro Front-Run Refutation ($n = 364$ weeks):** Aggregating Friday NASA thermal signals against Wednesday 10:30 AM ET EIA utilization yielded $\text{IC} = -0.0094$ ($t = -0.18, p = 0.8585$) for US utilization WoW and $\text{IC} = -0.0191$ ($t = -0.36, p = 0.7160$) for PADD 3—proving thermal flaring is an **idiosyncratic equity signal**, not a macro utilization proxy.
-* **Cost Sensitivity & Circular Block-Bootstrap (10,000 Draws):**
-  | Execution / Borrow Cost Tier | Mean Net Ret | Sharpe | Profit Factor | Max DD | Positive Books | Boot $P(\text{Sharpe} \le 0)$ | 95% Confidence Interval |
+* **Cost Sensitivity & Uninflated Block-Bootstrap (10,000 Draws per Book):**
+  | Execution / Borrow Cost Tier | Mean Net Ret | Sharpe | Profit Factor | Max DD | Positive Books | Med Boot $P(\text{Sharpe} \le 0)$ | 95% Confidence Interval |
   | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-  | **15 bps RT** | `+7.06%` | `0.38` | `1.65` | `3.60%` | `10 / 10` | **`0.000`** | `[+0.01%, +0.05%]` |
-  | **25 bps RT (Baseline)** | `+6.45%` | `0.35` | `1.59` | `3.66%` | `9 / 10` | **`0.000`** | `[+0.01%, +0.05%]` |
-  | **50 bps RT (Severe HTB)** | `+4.95%` | `0.28` | `1.44` | `3.85%` | `9 / 10` | **`0.004`** | `[+0.01%, +0.04%]` |
-  | **75 bps RT (Extreme Stress)** | `+3.47%` | `0.20` | `1.30` | `4.06%` | `9 / 10` | **`0.026`** | `[-0.00%, +0.03%]` |
+  | **15 bps RT** | `+7.06%` | `0.40` | `1.65` | `3.60%` | `10 / 10` | **`0.154`** | `[-0.02%, +0.10%]` |
+  | **25 bps RT (Baseline)** | `+6.45%` | `0.37` | `1.59` | `3.66%` | `9 / 10` | **`0.176`** | `[-0.03%, +0.09%]` |
+  | **50 bps RT (Severe HTB)** | `+4.95%` | `0.29` | `1.44` | `3.85%` | `9 / 10` | **`0.227`** | `[-0.03%, +0.08%]` |
+  | **75 bps RT (Extreme Stress)** | `+3.47%` | `0.21` | `1.30` | `4.06%` | `9 / 10` | **`0.283`** | `[-0.04%, +0.08%]` |
 
 ---
 
@@ -132,11 +132,11 @@ Applying the exact same per-pass VIIRS pipeline to **15 industrial facilities** 
 | **US Steel (`XME`)** | `CLF`, `NUE`, `STLD` | **`+0.1434`** | **`+1.79`** | **`0.0751`** | Blast furnace / EAF throughput (**Long** signal) |
 | **US Petrochem (`XLB`)** | `LYB`, `DOW`, `CF` | `+0.0745` | `+0.97` | `0.3344` | Noise — global feedstock spreads dominate |
 
-* **Steel Long Q5 10-Book Performance & Bootstrap (Net 25 bps RT):**
-  | Strategy Variant | Avg $N$ / Book | Mean Net Ret | Sharpe | Profit Factor | Max DD | Positive Books | Boot $P(\text{Sharpe} \le 0)$ | 95% Confidence Interval |
+* **Steel Long Q5 10-Book Performance & Uninflated Bootstrap (Net 25 bps RT):**
+  | Strategy Variant | Avg $N$ / Book | Mean Net Ret | Sharpe | Profit Factor | Max DD | Positive Books | Med Boot $P(\text{Sharpe} \le 0)$ | 95% Confidence Interval |
   | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-  | **Long Q5 Steel (All)** | 30.7 | `+2.29%` | `+0.22` | `1.48` | `2.75%` | `7 / 10` | **`0.012`** | `[+0.00%, +0.02%]` |
-  | **Long Q5 Steel + XME 20d Mom > 0** | 18.1 | `+1.23%` | `+0.15` | `1.59` | `1.84%` | `7 / 10` | **`0.059`** | `[-0.00%, +0.01%]` |
+  | **Long Q5 Steel (All)** | 30.7 | `+2.29%` | `+0.20` | `1.48` | `2.75%` | `7 / 10` | **`0.181`** | `[-0.01%, +0.04%]` |
+  | **Long Q5 Steel + XME 20d Mom > 0** | 18.1 | `+1.23%` | `+0.12` | `1.59` | `1.84%` | `7 / 10` | **`0.392`** | `[-0.01%, +0.03%]` |
 
 ---
 

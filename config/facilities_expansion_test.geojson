@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "lng_sabine_pass", "facility_name": "Cheniere Sabine Pass LNG", "ticker": "LNG", "sector": "LNG", "hedge_etf": "XLE", "capacity_bpd": 600000, "buffer_km": 2.5},
+      "geometry": {"type": "Point", "coordinates": [-93.8800, 29.7600]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "lng_corpus_christi", "facility_name": "Cheniere Corpus Christi LNG", "ticker": "LNG", "sector": "LNG", "hedge_etf": "XLE", "capacity_bpd": 300000, "buffer_km": 2.5},
+      "geometry": {"type": "Point", "coordinates": [-97.2700, 27.8900]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "parr_billings", "facility_name": "Par Pacific Billings MT", "ticker": "PARR", "sector": "REFINING", "hedge_etf": "XLE", "capacity_bpd": 63000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-108.4300, 45.8100]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "parr_tacoma", "facility_name": "Par Pacific Tacoma WA", "ticker": "PARR", "sector": "REFINING", "hedge_etf": "XLE", "capacity_bpd": 42000, "buffer_km": 2.0},
+      "geometry": {"type": "Point", "coordinates": [-122.4300, 47.2700]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "clmt_great_falls", "facility_name": "Calumet Great Falls MT", "ticker": "CLMT", "sector": "REFINING", "hedge_etf": "XLE", "capacity_bpd": 30000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-111.3000, 47.5200]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "clmt_shreveport", "facility_name": "Calumet Shreveport LA", "ticker": "CLMT", "sector": "REFINING", "hedge_etf": "XLE", "capacity_bpd": 60000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-93.8100, 32.5500]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cmc_birmingham", "facility_name": "Commercial Metals Birmingham AL", "ticker": "CMC", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 200000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-86.8100, 33.5500]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cmc_cayce", "facility_name": "Commercial Metals Cayce SC", "ticker": "CMC", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 250000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-81.0500, 33.9600]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cmc_durant", "facility_name": "Commercial Metals Durant OK", "ticker": "CMC", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 150000, "buffer_km": 2.0},
+      "geometry": {"type": "Point", "coordinates": [-96.4200, 34.0100]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cmc_seguin", "facility_name": "Commercial Metals Seguin TX", "ticker": "CMC", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 200000, "buffer_km": 2.0},
+      "geometry": {"type": "Point", "coordinates": [-98.0000, 29.5500]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cenx_sebree", "facility_name": "Century Aluminum Sebree KY", "ticker": "CENX", "sector": "METALS", "hedge_etf": "XME", "capacity_bpd": 220000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-87.5500, 37.6600]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cenx_mt_holly", "facility_name": "Century Aluminum Mt Holly SC", "ticker": "CENX", "sector": "METALS", "hedge_etf": "XME", "capacity_bpd": 230000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-80.0300, 33.0500]}
+    }
+  ]
+}

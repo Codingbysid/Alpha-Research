@@ -15,6 +15,7 @@ data/live/*.parquet
 data/live/*.log
 *.csv
 !data/live/paper_ledger.csv
+!data/live/steel_ledger.csv
 
 # Python / OS
 __pycache__/

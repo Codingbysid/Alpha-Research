@@ -1,6 +1,6 @@
 """
 Safe Alpaca Paper smoke test:
-1) Verifies account status & shortability for all 7 refiners + XLE
+1) Verifies account status & shortability for all 11 dual-sleeve stocks + XLE + XME
 2) Submits a far-off-market $1.00 limit buy on XLE, checks idempotency, and cancels it
 
 Usage:
@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from src.live.alpaca_broker import AlpacaPaperBroker
 
-UNIVERSE = ["VLO", "MPC", "PSX", "DINO", "PBF", "DK", "CVI", "XLE"]
+UNIVERSE = ["VLO", "MPC", "PSX", "DINO", "PBF", "DK", "CVI", "XLE", "CLF", "NUE", "STLD", "CMC", "XME"]
 
 
 def main() -> None:

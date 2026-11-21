@@ -10,7 +10,7 @@ import boto3
 from src.live.daily_runner import run_daily
 
 LOCAL_DATA_DIR = Path("/tmp/data")
-SYNC_PREFIXES = ("bronze/", "silver/", "gold/", "live/")
+SYNC_PREFIXES = ("bronze/", "silver/", "gold/", "live/", "industrial/")
 
 
 def _download_state(s3, bucket: str, prefix: str) -> None:

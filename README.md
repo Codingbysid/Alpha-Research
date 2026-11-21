@@ -71,7 +71,8 @@ osint-alpha-pipeline/
 │   │   ├── alpaca_broker.py             # Idempotent Alpaca Paper Trading adapter
 │   │   ├── daily_runner.py              # Daily mark-to-market, signal run, & blotter
 │   │   ├── lambda_handler.py            # AWS Lambda entrypoint (S3 sync <-> execution)
-│   │   └── smoke_test_alpaca.py         # Broker shortability & order idempotency test
+│   │   ├── smoke_test_alpaca.py         # Broker shortability & order idempotency test
+│   │   └── steel_sleeve.py              # Modular Steel Long Q5 sleeve (CLF, NUE, STLD, CMC vs. XME)
 │   ├── models/
 │   │   └── train_ml.py                  # Purged walk-forward ML benchmark (HistGB + Ridge)
 │   ├── risk/
