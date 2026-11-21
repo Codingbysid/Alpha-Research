@@ -73,12 +73,13 @@ def _run_staggered_books(
         return q_cache[dt]
 
     rows: list[dict] = []
-    all_step_rets: list[float] = []
+    book_step_rets: list[np.ndarray] = []
     sign = 1.0 if side == "LONG" else -1.0
 
     for offset in range(HOLDING_DAYS):
         eq, peak, dd = INITIAL_EQUITY, INITIAL_EQUITY, 0.0
         pnls: list[float] = []
+        cur_step_rets: list[float] = []
 
         for dt in all_dates[offset::HOLDING_DAYS]:
             idx = date_to_idx[dt]
@@ -86,7 +87,7 @@ def _run_staggered_books(
                 continue
             cut = get_cutoff(dt)
             if cut is None:
-                all_step_rets.append(0.0)
+                cur_step_rets.append(0.0)
                 continue
 
             sig_cond = (df[signal_col] >= cut) if thresh_mode == "q80_high" else (df[signal_col] <= cut)
@@ -103,7 +104,7 @@ def _run_staggered_books(
 
             cands = df[cond]
             if cands.empty:
-                all_step_rets.append(0.0)
+                cur_step_rets.append(0.0)
                 continue
 
             sc = min(1.0, MAX_GROSS_WT / (len(cands) * EQ_WT_LEG))
@@ -113,7 +114,7 @@ def _run_staggered_books(
                 pnl = eq * (EQ_WT_LEG * sc) * nr
                 sp += pnl
                 pnls.append(pnl)
-            all_step_rets.append(sp / eq)
+            cur_step_rets.append(sp / eq)
             eq += sp
             peak = max(peak, eq)
             dd = max(dd, (peak - eq) / peak)
@@ -121,24 +122,25 @@ def _run_staggered_books(
         gp = sum(p for p in pnls if p > 0)
         gl = abs(sum(p for p in pnls if p < 0))
         pf = gp / gl if gl > 0 else np.nan
+        b_arr = np.array(cur_step_rets, dtype=float)
+        b_sh = (
+            float(np.mean(b_arr) / np.std(b_arr, ddof=1) * np.sqrt(252.0 / HOLDING_DAYS))
+            if len(b_arr) > 1 and np.std(b_arr, ddof=1) > 0
+            else 0.0
+        )
         rows.append(
             {
                 "n": len(pnls),
                 "net_pct": (eq / INITIAL_EQUITY - 1.0) * 100.0,
+                "sh": b_sh,
                 "pf": pf,
                 "dd_pct": dd * 100.0,
             }
         )
+        book_step_rets.append(b_arr)
 
     res = pd.DataFrame(rows)
-    arr = np.array(all_step_rets, dtype=float)
-    mean_sh = (
-        float(np.mean(arr) / np.std(arr, ddof=1) * np.sqrt(252.0 / HOLDING_DAYS))
-        if len(arr) > 1 and np.std(arr, ddof=1) > 0
-        else 0.0
-    )
-    res.attrs["pooled_sharpe"] = mean_sh
-    return res, arr
+    return res, book_step_rets
 
 
 def block_bootstrap_stats(step_rets: np.ndarray, n_draws: int = BOOT_DRAWS, seed: int = 42) -> dict[str, float]:
@@ -169,6 +171,23 @@ def block_bootstrap_stats(step_rets: np.ndarray, n_draws: int = BOOT_DRAWS, seed
         "ci_lo_pct": float(lo),
         "ci_hi_pct": float(hi),
         "boot_sh_med": float(np.median(boot_sharpes)),
+    }
+
+
+def eval_bootstrap_summary(book_step_rets: list[np.ndarray]) -> dict[str, float]:
+    p_vals, lo_vals, hi_vals, med_sharpes = [], [], [], []
+    for b_arr in book_step_rets:
+        stats = block_bootstrap_stats(b_arr)
+        if not np.isnan(stats["p_val"]):
+            p_vals.append(stats["p_val"])
+            lo_vals.append(stats["ci_lo_pct"])
+            hi_vals.append(stats["ci_hi_pct"])
+            med_sharpes.append(stats["boot_sh_med"])
+    return {
+        "med_p_val": float(np.median(p_vals)) if p_vals else np.nan,
+        "med_ci_lo": float(np.median(lo_vals)) if lo_vals else np.nan,
+        "med_ci_hi": float(np.median(hi_vals)) if hi_vals else np.nan,
+        "med_boot_sh": float(np.median(med_sharpes)) if med_sharpes else np.nan,
     }
 
 
@@ -227,15 +246,15 @@ def audit_steel_long_q5() -> None:
         ("Long Q5 Steel (All)", None),
         ("Long Q5 Steel + XME 20d Mom > 0", "xme_mom20_pos"),
     ]:
-        books, step_r = _run_staggered_books(
+        books, book_steps = _run_staggered_books(
             df, side="LONG", signal_col="yoy_per_pass", thresh_mode="q80_high", extra_mask_col=mask_col, cost_rt=0.0025
         )
-        boot = block_bootstrap_stats(step_r)
+        boot = eval_bootstrap_summary(book_steps)
         print(
             f"  {label:32s} | AvgN={books['n'].mean():4.1f} | Net={books['net_pct'].mean():+6.2f}% "
-            f"| Sh={books.attrs['pooled_sharpe']:+.2f} | PF={books['pf'].mean():.2f} "
+            f"| Sh={books['sh'].mean():+.2f} | PF={books['pf'].mean():.2f} "
             f"| DD={books['dd_pct'].mean():4.2f}% | Pos={(books['net_pct']>0).sum():2d}/10 "
-            f"| BootP={boot['p_val']:.3f} | 95%CI=[{boot['ci_lo_pct']:+.2f}%, {boot['ci_hi_pct']:+.2f}%]"
+            f"| MedBootP={boot['med_p_val']:.3f} | 95%CI=[{boot['med_ci_lo']:+.2f}%, {boot['med_ci_hi']:+.2f}%]"
         )
 
 
@@ -251,7 +270,7 @@ def audit_refiner_stress() -> None:
 
     print("\n=== REFINER SHORT Q5 + CRACK<=1.0 COST & BLOCK-BOOTSTRAP STRESS TEST (10 BOOKS) ===")
     for bps in COST_SWEEP_BPS:
-        books, step_r = _run_staggered_books(
+        books, book_steps = _run_staggered_books(
             df,
             side="SHORT",
             signal_col="yoy_per_pass",
@@ -259,12 +278,12 @@ def audit_refiner_stress() -> None:
             extra_mask_col=mask_col,
             cost_rt=bps / 1e4,
         )
-        boot = block_bootstrap_stats(step_r)
+        boot = eval_bootstrap_summary(book_steps)
         print(
             f"  Cost={bps:4.0f} bps RT | AvgN={books['n'].mean():4.1f} | Net={books['net_pct'].mean():+6.2f}% "
-            f"| Sh={books.attrs['pooled_sharpe']:+.2f} | PF={books['pf'].mean():.2f} "
+            f"| Sh={books['sh'].mean():+.2f} | PF={books['pf'].mean():.2f} "
             f"| DD={books['dd_pct'].mean():4.2f}% | Pos={(books['net_pct']>0).sum():2d}/10 "
-            f"| BootP={boot['p_val']:.3f} | 95%CI=[{boot['ci_lo_pct']:+.2f}%, {boot['ci_hi_pct']:+.2f}%]"
+            f"| MedBootP={boot['med_p_val']:.3f} | 95%CI=[{boot['med_ci_lo']:+.2f}%, {boot['med_ci_hi']:+.2f}%]"
         )
 
 
