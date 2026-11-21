@@ -54,6 +54,7 @@ osint-alpha-pipeline/
 ├── src/
 │   ├── eval/                            # Backtest & statistical audit engines
 │   │   ├── audit_ais_fusion.py          # AIS tanker dwell time & satellite fusion
+│   │   ├── audit_ais_multimonth.py      # Multi-month AIS + VIIRS regime-split audit
 │   │   ├── audit_crack_eia.py           # 3-2-1 crack spread & EIA macro correlation audit
 │   │   ├── audit_industrial.py          # Cross-sector expansion (Steel vs. Petrochemicals)
 │   │   ├── audit_short_q5.py            # Purged backtest with Merton CVaR sizing
@@ -68,7 +69,8 @@ osint-alpha-pipeline/
 │   ├── live/                            # Production execution layer
 │   │   ├── alpaca_broker.py             # Idempotent Alpaca Paper Trading adapter
 │   │   ├── daily_runner.py              # Daily mark-to-market, signal run, & blotter
-│   │   └── lambda_handler.py            # AWS Lambda entrypoint (S3 sync <-> execution)
+│   │   ├── lambda_handler.py            # AWS Lambda entrypoint (S3 sync <-> execution)
+│   │   └── smoke_test_alpaca.py         # Broker shortability & order idempotency test
 │   ├── models/
 │   │   └── train_ml.py                  # Purged walk-forward ML benchmark (HistGB + Ridge)
 │   ├── risk/
