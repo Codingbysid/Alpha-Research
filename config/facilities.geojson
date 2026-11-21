@@ -1,0 +1,115 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "vlo_port_arthur", "facility_name": "Valero Port Arthur", "ticker": "VLO", "capacity_bpd": 435000, "buffer_km": 2.2, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-93.9636, 29.8639]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "vlo_st_charles", "facility_name": "Valero St. Charles", "ticker": "VLO", "capacity_bpd": 340000, "buffer_km": 2.2, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-90.3958, 29.9925]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "vlo_texas_city", "facility_name": "Valero Texas City", "ticker": "VLO", "capacity_bpd": 260000, "buffer_km": 1.2, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-94.9144, 29.3692]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "mpc_galveston_bay", "facility_name": "Marathon Galveston Bay", "ticker": "MPC", "capacity_bpd": 631000, "buffer_km": 1.8, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-94.9355, 29.3738]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "mpc_garyville", "facility_name": "Marathon Garyville", "ticker": "MPC", "capacity_bpd": 617000, "buffer_km": 2.5, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-90.5981, 30.0597]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "mpc_catlettsburg", "facility_name": "Marathon Catlettsburg", "ticker": "MPC", "capacity_bpd": 307000, "buffer_km": 2.2, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-82.5986, 38.3742]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "psx_wood_river", "facility_name": "Phillips 66 Wood River", "ticker": "PSX", "capacity_bpd": 345000, "buffer_km": 2.5, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-90.0750, 38.8425]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "psx_sweeny", "facility_name": "Phillips 66 Sweeny", "ticker": "PSX", "capacity_bpd": 265000, "buffer_km": 2.2, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-95.7478, 29.0725]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "psx_ponca_city", "facility_name": "Phillips 66 Ponca City", "ticker": "PSX", "capacity_bpd": 230000, "buffer_km": 2.2, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-97.0895, 36.6821]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dino_el_dorado", "facility_name": "HF Sinclair El Dorado KS", "ticker": "DINO", "capacity_bpd": 135000, "buffer_km": 2.2, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-96.8717, 37.7962]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dino_tulsa", "facility_name": "HF Sinclair Tulsa", "ticker": "DINO", "capacity_bpd": 125000, "buffer_km": 2.2, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-96.0016, 36.1260]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dino_navajo", "facility_name": "HF Sinclair Navajo", "ticker": "DINO", "capacity_bpd": 100000, "buffer_km": 2.2, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-104.3910, 32.8426]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "pbf_chalmette", "facility_name": "PBF Chalmette", "ticker": "PBF", "capacity_bpd": 185000, "buffer_km": 2.0, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-90.0046, 29.9386]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "pbf_delaware_city", "facility_name": "PBF Delaware City", "ticker": "PBF", "capacity_bpd": 180000, "buffer_km": 2.5, "padd": "PADD1"},
+      "geometry": {"type": "Point", "coordinates": [-75.6309, 39.5809]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "pbf_toledo", "facility_name": "PBF Toledo", "ticker": "PBF", "capacity_bpd": 160000, "buffer_km": 2.0, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-83.5042, 41.6325]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "pbf_torrance", "facility_name": "PBF Torrance", "ticker": "PBF", "capacity_bpd": 166000, "buffer_km": 2.0, "padd": "PADD5"},
+      "geometry": {"type": "Point", "coordinates": [-118.3311, 33.8525]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dk_el_dorado", "facility_name": "Delek El Dorado AR", "ticker": "DK", "capacity_bpd": 83000, "buffer_km": 2.0, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-92.6700, 33.2000]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dk_krotz_springs", "facility_name": "Delek Krotz Springs", "ticker": "DK", "capacity_bpd": 80000, "buffer_km": 2.0, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-91.7494, 30.5242]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dk_tyler", "facility_name": "Delek Tyler", "ticker": "DK", "capacity_bpd": 75000, "buffer_km": 2.0, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-95.2806, 32.3625]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dk_big_spring", "facility_name": "Delek Big Spring", "ticker": "DK", "capacity_bpd": 73000, "buffer_km": 2.0, "padd": "PADD3"},
+      "geometry": {"type": "Point", "coordinates": [-101.4154, 32.2704]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cvi_coffeyville", "facility_name": "CVR Coffeyville", "ticker": "CVI", "capacity_bpd": 132000, "buffer_km": 2.2, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-95.6031, 37.0497]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cvi_wynnewood", "facility_name": "CVR Wynnewood", "ticker": "CVI", "capacity_bpd": 74500, "buffer_km": 2.0, "padd": "PADD2"},
+      "geometry": {"type": "Point", "coordinates": [-97.1694, 34.6300]}
+    }
+  ]
+}

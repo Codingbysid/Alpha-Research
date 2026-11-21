@@ -1,0 +1,19 @@
+FROM public.ecr.aws/lambda/python:3.12
+
+WORKDIR /var/task
+
+RUN pip install --no-cache-dir \
+    duckdb pandas geopandas shapely requests pyarrow python-dotenv \
+    tzdata yfinance scipy hmmlearn scikit-learn boto3
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir alpaca-py
+
+COPY config/ ./config/
+COPY src/ ./src/
+
+# Map relative data/ paths to Lambda's writable /tmp/data
+RUN ln -s /tmp/data /var/task/data
+
+ENV PYTHONPATH=/var/task
+CMD ["src.live.lambda_handler.handler"]

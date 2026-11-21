@@ -1,0 +1,17 @@
+# Exclude large local data and archives from Docker build context
+data/
+data/**
+
+# Environment & git
+.env
+.env.*
+.git/
+.gitignore
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+env/
+venv/

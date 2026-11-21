@@ -1,0 +1,26 @@
+# Secrets & local env
+.env
+.env.*
+!.env.example
+
+# Large raw data & generated caches (keep code & docs only)
+data/raw_archives/
+data/raw_ais/
+data/bronze/
+data/silver/
+data/gold/
+data/industrial/
+data/ais/
+data/live/*.parquet
+data/live/*.log
+*.csv
+!data/live/paper_ledger.csv
+
+# Python / OS
+__pycache__/
+*.pyc
+*.py[cod]
+.DS_Store
+.venv/
+venv/
+env/

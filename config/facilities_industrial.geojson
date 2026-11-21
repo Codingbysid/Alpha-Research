@@ -1,0 +1,80 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "clf_indiana_harbor", "facility_name": "Cleveland-Cliffs Indiana Harbor", "ticker": "CLF", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 400000, "buffer_km": 2.5},
+      "geometry": {"type": "Point", "coordinates": [-87.4380, 41.6620]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "clf_burns_harbor", "facility_name": "Cleveland-Cliffs Burns Harbor", "ticker": "CLF", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 350000, "buffer_km": 2.5},
+      "geometry": {"type": "Point", "coordinates": [-87.1360, 41.6380]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "clf_middletown", "facility_name": "Cleveland-Cliffs Middletown Works", "ticker": "CLF", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 250000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-84.3840, 39.4920]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "nue_berkeley", "facility_name": "Nucor Steel Berkeley SC", "ticker": "NUE", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 300000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-79.8830, 32.9680]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "nue_crawfordsville", "facility_name": "Nucor Steel Crawfordsville IN", "ticker": "NUE", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 250000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-86.8140, 40.0250]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "nue_hickman", "facility_name": "Nucor Steel Arkansas Hickman", "ticker": "NUE", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 300000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-89.7380, 35.9480]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "stld_butler", "facility_name": "Steel Dynamics Butler IN", "ticker": "STLD", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 300000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-84.9180, 41.3750]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "stld_columbus", "facility_name": "Steel Dynamics Columbus MS", "ticker": "STLD", "sector": "STEEL", "hedge_etf": "XME", "capacity_bpd": 300000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-88.5320, 33.4850]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "lyb_channelview", "facility_name": "LyondellBasell Channelview", "ticker": "LYB", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 350000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-95.1180, 29.8320]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "lyb_la_porte", "facility_name": "LyondellBasell La Porte", "ticker": "LYB", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 250000, "buffer_km": 2.0},
+      "geometry": {"type": "Point", "coordinates": [-95.0600, 29.6360]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "lyb_corpus_christi", "facility_name": "LyondellBasell Corpus Christi", "ticker": "LYB", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 250000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-97.5790, 27.8070]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dow_freeport", "facility_name": "Dow Freeport TX", "ticker": "DOW", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 450000, "buffer_km": 2.8},
+      "geometry": {"type": "Point", "coordinates": [-95.3600, 28.9830]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "dow_plaquemine", "facility_name": "Dow Plaquemine LA", "ticker": "DOW", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 300000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-91.2460, 30.3120]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cf_donaldsonville", "facility_name": "CF Industries Donaldsonville LA", "ticker": "CF", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 400000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-90.9620, 30.0880]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"facility_id": "cf_port_neal", "facility_name": "CF Industries Port Neal IA", "ticker": "CF", "sector": "PETROCHEM", "hedge_etf": "XLB", "capacity_bpd": 200000, "buffer_km": 2.2},
+      "geometry": {"type": "Point", "coordinates": [-96.3690, 42.3260]}
+    }
+  ]
+}

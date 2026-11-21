@@ -1,0 +1,1 @@
+trade_id,status,entry_date,exit_date,holding_days_elapsed,ticker,yoy_per_pass,q80_threshold,cloud_pct,p_win_est,raw_kelly_est,unit_cvar_95,weight_pct,short_shares,entry_px,beta_60d,xle_long_shares,xle_entry_px,last_px,xle_last_px,mtm_pnl_usd,realized_pnl_usd,notes
