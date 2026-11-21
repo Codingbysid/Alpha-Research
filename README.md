@@ -58,6 +58,7 @@ osint-alpha-pipeline/
 │   │   ├── audit_crack_eia.py           # 3-2-1 crack spread & EIA macro correlation audit
 │   │   ├── audit_industrial.py          # Cross-sector expansion (Steel vs. Petrochemicals)
 │   │   ├── audit_short_q5.py            # Purged backtest with Merton CVaR sizing
+│   │   ├── audit_step3_steel_and_stress.py # Steel Long Q5, bootstrap, and cost sweep
 │   │   ├── backtest_ls.py               # Long/short benchmark engine
 │   │   └── ic_audit.py                  # Point-in-time Information Coefficient audit
 │   ├── ingest/                          # Data acquisition layer
