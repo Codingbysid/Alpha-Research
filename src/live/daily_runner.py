@@ -330,6 +330,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
         & (df["fwd_ret_10d_excess"].notna())
     ]
     q80 = float(np.quantile(hist["yoy_per_pass"].values, 0.80))
+    q95 = float(np.quantile(hist["yoy_per_pass"].values, 0.95))
     q5_rets = -hist.loc[hist["yoy_per_pass"] >= q80, "fwd_ret_10d_excess"] - COST_RT
     wins, losses = q5_rets[q5_rets > 0], q5_rets[q5_rets < 0]
     p_win_est = float((len(wins) + PRIOR_ALPHA) / (len(q5_rets) + 2.0 * PRIOR_ALPHA))
@@ -372,8 +373,12 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
             var_95 = float(np.quantile(unit_losses, 0.95))
             cvar_95 = float(unit_losses[unit_losses >= var_95].mean())
 
+            # Linear conviction scaling: clip((yoy - q80)/(q95 - q80), 0.5, 1.5)
+            yoy_val = float(row["yoy_per_pass"])
+            conv_mult = float(np.clip((yoy_val - q80) / max(1e-6, q95 - q80), 0.5, 1.5))
+
             cvar_wt = MAX_CVAR_PCT / max(cvar_95, 1e-6)
-            wt = min(cvar_wt, MAX_SINGLE_WT) * reg_mult
+            wt = min(cvar_wt, MAX_SINGLE_WT) * conv_mult * reg_mult
             avail_wt = max(0.0, MAX_GROSS_WT - open_gross_wt)
             wt = min(wt, avail_wt)
 
@@ -411,7 +416,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
                     "xle_last_px": round(xle_now, 2),
                     "mtm_pnl_usd": round(-stock_notional * COST_RT, 2),
                     "realized_pnl_usd": 0.0,
-                    "notes": f"Short Q5 / Long beta*XLE (reg_mult={reg_mult:.2f}, crack_z60={crack_z60:+.2f})",
+                    "notes": f"Short Q5 / Long beta*XLE (conv={conv_mult:.2f}, reg_mult={reg_mult:.2f}, crack_z60={crack_z60:+.2f})",
                 }
             )
 
@@ -454,7 +459,8 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
             order_errors.append(f"XLE rebalance failed: {exc}")
             print(f"[broker][error] XLE rebalance failed: {exc}")
 
-    save_ledger(ledger)
+    if not dry_run:
+        save_ledger(ledger)
 
     # 4. Print Desk Blotter
     lines = [
@@ -465,7 +471,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
         f"Regime : {reg_label} (p_panic={p_panic:.3f}, OVX={ovx_val:.2f}, reg_mult={reg_mult:.2f})",
         f"Crack  : ${crack_321:.2f}/bbl (z60={crack_z60:+.2f}, gate={'PASS' if crack_ok else 'BLOCK'})",
         f"Equity : ${current_equity:,.2f} (Realized: ${realized_total:+,.2f} | Open MTM: ${unrealized_total:+,.2f})",
-        f"Model  : Q80={q80:.3f} | Est p_win={p_win_est:.3f} | b={b_est:.2f} | Raw Kelly={raw_kelly_est:+.3f}",
+        f"Model  : Q80={q80:.3f} | Q95={q95:.3f} | Est p_win={p_win_est:.3f} | b={b_est:.2f} | Raw Kelly={raw_kelly_est:+.3f}",
         "",
         "--- TODAY'S UNIVERSE SNAPSHOT ---",
         today_df[["ticker", "yoy_per_pass", "cloud_cover_pct_weighted", "adj_close", "beta_xle_60d"]]

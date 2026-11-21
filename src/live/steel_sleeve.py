@@ -209,55 +209,54 @@ def run_steel_sleeve(
     )
 
     new_entries: list[dict] = []
-    if mom_ok:
-        cands = today_df[
-            (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
-            & (today_df["yoy_per_pass"] >= q80)
-        ]
-        for _, row in cands.iterrows():
-            tkr = str(row["ticker"])
-            if tkr in open_tickers or (as_of_str, tkr) in existing_keys:
-                continue
+    cands = today_df[
+        (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
+        & (today_df["yoy_per_pass"] >= q80)
+    ]
+    for _, row in cands.iterrows():
+        tkr = str(row["ticker"])
+        if tkr in open_tickers or (as_of_str, tkr) in existing_keys:
+            continue
 
-            avail_wt = max(0.0, MAX_GROSS_WT - open_gross_wt)
-            wt = min(MAX_SINGLE_WT, avail_wt)
-            if wt <= 0.0:
-                continue
+        avail_wt = max(0.0, MAX_GROSS_WT - open_gross_wt)
+        wt = min(MAX_SINGLE_WT, avail_wt)
+        if wt <= 0.0:
+            continue
 
-            px = float(row["adj_close"])
-            beta = float(row["beta_xme_60d"]) if pd.notna(row["beta_xme_60d"]) else 1.0
-            long_shares = int((current_equity * wt) // px) if px > 0 else 0
-            if long_shares <= 0:
-                continue
+        px = float(row["adj_close"])
+        beta = float(row["beta_xme_60d"]) if pd.notna(row["beta_xme_60d"]) else 1.0
+        long_shares = int((current_equity * wt) // px) if px > 0 else 0
+        if long_shares <= 0:
+            continue
 
-            stock_notional = long_shares * px
-            xme_shares = int(round((stock_notional * beta) / xme_now))
-            open_gross_wt += stock_notional / current_equity
+        stock_notional = long_shares * px
+        xme_shares = int(round((stock_notional * beta) / xme_now))
+        open_gross_wt += stock_notional / current_equity
 
-            new_entries.append(
-                {
-                    "trade_id": f"STEEL_{as_of_str}_{tkr}",
-                    "status": "OPEN",
-                    "entry_date": as_of_str,
-                    "exit_date": "",
-                    "holding_days_elapsed": 0,
-                    "ticker": tkr,
-                    "yoy_per_pass": round(float(row["yoy_per_pass"]), 3),
-                    "q80_threshold": round(q80, 3),
-                    "cloud_pct": round(float(row["cloud_cover_pct_weighted"]), 1),
-                    "weight_pct": round((stock_notional / current_equity) * 100, 2),
-                    "long_shares": long_shares,
-                    "entry_px": round(px, 2),
-                    "beta_60d": round(beta, 3),
-                    "xme_short_shares": -xme_shares,  # Negative quantity for short hedge
-                    "xme_entry_px": round(xme_now, 2),
-                    "last_px": round(px, 2),
-                    "xme_last_px": round(xme_now, 2),
-                    "mtm_pnl_usd": round(-stock_notional * COST_RT, 2),
-                    "realized_pnl_usd": 0.0,
-                    "notes": f"Long Q5 Steel / Short beta*XME (xme_mom20={xme_mom20_today:+.2%})",
-                }
-            )
+        new_entries.append(
+            {
+                "trade_id": f"STEEL_{as_of_str}_{tkr}",
+                "status": "OPEN",
+                "entry_date": as_of_str,
+                "exit_date": "",
+                "holding_days_elapsed": 0,
+                "ticker": tkr,
+                "yoy_per_pass": round(float(row["yoy_per_pass"]), 3),
+                "q80_threshold": round(q80, 3),
+                "cloud_pct": round(float(row["cloud_cover_pct_weighted"]), 1),
+                "weight_pct": round((stock_notional / current_equity) * 100, 2),
+                "long_shares": long_shares,
+                "entry_px": round(px, 2),
+                "beta_60d": round(beta, 3),
+                "xme_short_shares": -xme_shares,  # Negative quantity for short hedge
+                "xme_entry_px": round(xme_now, 2),
+                "last_px": round(px, 2),
+                "xme_last_px": round(xme_now, 2),
+                "mtm_pnl_usd": round(-stock_notional * COST_RT, 2),
+                "realized_pnl_usd": 0.0,
+                "notes": f"Long Q5 Steel / Short beta*XME (unfiltered, xme_mom20={xme_mom20_today:+.2%})",
+            }
+        )
 
     accepted_entries: list[dict] = []
     if new_entries:
@@ -300,12 +299,13 @@ def run_steel_sleeve(
             order_errors.append(f"XME rebalance failed: {exc}")
             print(f"[steel][error] XME rebalance failed: {exc}")
 
-    save_steel_ledger(ledger)
+    if not dry_run:
+        save_steel_ledger(ledger)
 
     # 4. Print Sleeve Blotter
     lines = [
         f"\n=== STEEL LONG-Q5 SLEEVE BLOTTER | AS OF {as_of_str} ===",
-        f"Gate   : XME 20d Mom = {xme_mom20_today:+.2%} ({'PASS' if mom_ok else 'BLOCK'}) | Market: {'OPEN' if market_open else 'CLOSED'}",
+        f"Gate   : UNFILTERED (Flat Equal-Weight) | XME 20d Mom = {xme_mom20_today:+.2%} | Market: {'OPEN' if market_open else 'CLOSED'}",
         f"Model  : Q80 = {q80:.3f} | XME Price = ${xme_now:.2f} | Target XME Short = {target_xme} shares ({xme_rebal_status})",
         f"Sleeve : Realized = ${realized_total:+,.2f} | Open MTM = ${unrealized_total:+,.2f} | Gross Wt = {open_gross_wt:.1%}",
         f"Closed : {', '.join(closed_today) if closed_today else 'None'}",
