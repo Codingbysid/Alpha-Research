@@ -65,6 +65,15 @@ def build_multimonth_ais() -> pd.DataFrame:
             if fpath.suffix.lower() == ".parquet"
             else f"read_csv_auto('{fpath.as_posix()}', all_varchar=True)"
         )
+        
+        # Check if already pre-aggregated daily parquet
+        col_names = [c.lower() for c in con.execute(f"SELECT * FROM {src_expr} LIMIT 0").df().columns]
+        if "tanker_count" in col_names and "obs_date" in col_names:
+            df_part = con.execute(f"SELECT obs_date, tanker_count, mean_draught_m, slow_dwell_share FROM {src_expr}").df()
+            if not df_part.empty:
+                parts.append(df_part)
+            continue
+
         c = _resolve_cols(con, src_expr)
         q = f"""
             SELECT
