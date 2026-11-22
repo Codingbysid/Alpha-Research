@@ -69,7 +69,7 @@ def poll_live_firms(
     day_range: int = 2,
     sources: tuple[str, ...] = DEFAULT_SOURCES,
     facilities_path: Path = FACILITIES_PATH,
-) -> int:
+) -> tuple[int, bool]:
     load_dotenv()
     map_key = os.getenv("NASA_FIRMS_MAP_KEY", "").strip()
     if not map_key or map_key == "your_32_char_key_here":
@@ -83,6 +83,8 @@ def poll_live_firms(
 
     bboxes = load_facility_bboxes(facilities_path=facilities_path, pad_deg=0.06)
     frames: list[pd.DataFrame] = []
+    requests_ok = 0
+    requests_failed = 0
 
     for source in sources:
         for idx, bbox in enumerate(bboxes, start=1):
@@ -93,6 +95,7 @@ def poll_live_firms(
                     bbox=bbox,
                     day_range=day_range,
                 )
+                requests_ok += 1
                 if not raw_df.empty:
                     frames.append(
                         normalize_firms_df(
@@ -100,16 +103,27 @@ def poll_live_firms(
                         )
                     )
             except Exception as exc:
+                requests_failed += 1
                 print(f"[live][warn] {source} bbox #{idx} failed: {exc}")
             time.sleep(0.15)  # Polite pacing
 
+    feed_ok = (requests_failed == 0) and (requests_ok > 0)
+    if requests_failed > 0:
+        print(
+            f"[live][error] FEED_ERROR: FIRMS poll encountered {requests_failed} failed/timeout requests "
+            f"(succeeded={requests_ok})."
+        )
+
     if not frames:
+        if not feed_ok:
+            print("[live][error] FEED_ERROR: Poll failed due to API errors; suppressing new thermal detections.")
+            return 0, False
         print("[live] Poll succeeded; zero new thermal detections across facilities.")
-        return 0
+        return 0, True
 
     batch_df = pd.concat(frames, ignore_index=True)
-    print(f"[live] Pulled {len(batch_df):,} raw detections across {len(sources)} sensors.")
-    return upsert_bronze_parquet(batch_df)
+    print(f"[live] Pulled {len(batch_df):,} raw detections across {len(sources)} sensors (feed_ok={feed_ok}).")
+    return upsert_bronze_parquet(batch_df), feed_ok
 
 
 def main() -> None:

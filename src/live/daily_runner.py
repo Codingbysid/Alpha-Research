@@ -236,6 +236,8 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
 
     broker = AlpacaPaperBroker.from_env()
     broker_status = "ALPACA_PAPER" if broker is not None else "LEDGER_ONLY"
+    order_errors: list[str] = []
+    feed_ok: bool = True
 
     if broker is not None:
         try:
@@ -247,7 +249,11 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
 
     if not skip_ingest:
         print("[live] Step 1/5: Polling NASA FIRMS NRT...")
-        poll_live_firms(day_range=2)
+        _, feed_ok = poll_live_firms(day_range=2)
+        if not feed_ok:
+            err_msg = "FEED_ERROR: NASA FIRMS polling incomplete/timeout; suppressing new entries."
+            order_errors.append(err_msg)
+            print(f"[live][error] {err_msg}")
         print("[live] Step 2/5: Rebuilding Gold features...")
         build_features()
         print("[live] Step 3/5: Updating market returns...")
@@ -272,7 +278,6 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     ledger = load_ledger()
     steel_ledger = load_steel_ledger()
     reconcile_ok, reconcile_msgs = _reconcile_positions(broker, ledger, steel_ledger)
-    order_errors: list[str] = []
     closed_today: list[str] = []
     market_open = broker.is_market_open() if broker is not None else False
 
@@ -320,7 +325,8 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
 
     realized_total = float(ledger.loc[ledger["status"] == "CLOSED", "realized_pnl_usd"].sum()) if not ledger.empty else 0.0
     unrealized_total = float(ledger.loc[ledger["status"] == "OPEN", "mtm_pnl_usd"].sum()) if not ledger.empty else 0.0
-    current_equity = base_equity + realized_total + unrealized_total
+    # Live broker equity already reflects account P&L; do not double-count
+    current_equity = base_equity if broker is not None else (base_equity + realized_total + unrealized_total)
 
     # 2. Compute embargoed Q80 threshold & historical telemetry
     hist = df[
@@ -357,7 +363,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     crack_ok = pd.notna(crack_z60) and (crack_z60 <= CRACK_Z60_MAX)
 
     new_entries: list[dict] = []
-    if reg_mult > 0 and crack_ok:
+    if reg_mult > 0 and crack_ok and feed_ok:
         cands = today_df[
             (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
             & (today_df["yoy_per_pass"] >= q80)
@@ -378,7 +384,8 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
             conv_mult = float(np.clip((yoy_val - q80) / max(1e-6, q95 - q80), 0.5, 1.5))
 
             cvar_wt = MAX_CVAR_PCT / max(cvar_95, 1e-6)
-            wt = min(cvar_wt, MAX_SINGLE_WT) * conv_mult * reg_mult
+            raw_wt = cvar_wt * conv_mult * reg_mult
+            wt = min(raw_wt, MAX_SINGLE_WT)
             avail_wt = max(0.0, MAX_GROSS_WT - open_gross_wt)
             wt = min(wt, avail_wt)
 
@@ -465,6 +472,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     # 4. Print Desk Blotter
     lines = [
         f"=== OSINT SHORT-Q5 DAILY BLOTTER | AS OF {as_of_str} (run {datetime.now(timezone.utc).strftime('%H:%M UTC')}) ===",
+        f"Signal : Refiners signal_as_of_date = {as_of_str} | Feed: {'OK' if feed_ok else 'FEED_ERROR (New entries suppressed)'}",
         f"Broker : {broker_status} | XLE Hedge Rebal: {xle_rebal_status}",
         f"Sync   : {' | '.join(reconcile_msgs)}",
         f"Errors : {', '.join(order_errors) if order_errors else 'None'}",
@@ -528,6 +536,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
         base_equity=base_equity,
         skip_ingest=skip_ingest,
         dry_run=dry_run,
+        feed_ok=feed_ok,
     )
     if steel_res.get("order_errors"):
         order_errors.extend(steel_res["order_errors"])

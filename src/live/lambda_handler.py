@@ -53,6 +53,9 @@ def handler(event: dict, context) -> dict:
 
     run_daily(base_equity=equity, skip_ingest=skip_ingest, dry_run=dry_run)
 
-    print(f"[lambda] Syncing updated state up to s3://{bucket}/{prefix}")
-    _upload_state(s3, bucket, prefix)
+    if not dry_run:
+        print(f"[lambda] Syncing updated state up to s3://{bucket}/{prefix}")
+        _upload_state(s3, bucket, prefix)
+    else:
+        print(f"[lambda] dry_run=True: Skipping S3 upload to protect live state.")
     return {"status": "ok", "bucket": bucket}

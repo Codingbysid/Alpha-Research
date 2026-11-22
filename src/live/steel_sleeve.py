@@ -121,6 +121,7 @@ def run_steel_sleeve(
     base_equity: float = 25_000.0,
     skip_ingest: bool = False,
     dry_run: bool = False,
+    feed_ok: bool = True,
 ) -> dict:
     fac_gdf = gpd.read_file(FACILITIES_PATH)
     df, xme_px_map = build_steel_panel(fac_gdf)
@@ -188,7 +189,8 @@ def run_steel_sleeve(
 
     realized_total = float(ledger.loc[ledger["status"] == "CLOSED", "realized_pnl_usd"].sum()) if not ledger.empty else 0.0
     unrealized_total = float(ledger.loc[ledger["status"] == "OPEN", "mtm_pnl_usd"].sum()) if not ledger.empty else 0.0
-    current_equity = base_equity + realized_total + unrealized_total
+    # Live broker equity already reflects account P&L; do not double-count
+    current_equity = base_equity if broker is not None else (base_equity + realized_total + unrealized_total)
 
     # 2. Compute embargoed Q80 threshold
     hist = df[
@@ -209,10 +211,14 @@ def run_steel_sleeve(
     )
 
     new_entries: list[dict] = []
-    cands = today_df[
-        (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
-        & (today_df["yoy_per_pass"] >= q80)
-    ]
+    cands = (
+        today_df[
+            (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
+            & (today_df["yoy_per_pass"] >= q80)
+        ]
+        if feed_ok
+        else today_df.iloc[0:0]
+    )
     for _, row in cands.iterrows():
         tkr = str(row["ticker"])
         if tkr in open_tickers or (as_of_str, tkr) in existing_keys:
@@ -305,6 +311,7 @@ def run_steel_sleeve(
     # 4. Print Sleeve Blotter
     lines = [
         f"\n=== STEEL LONG-Q5 SLEEVE BLOTTER | AS OF {as_of_str} ===",
+        f"Signal : Steel signal_as_of_date = {as_of_str} | Feed: {'OK' if feed_ok else 'FEED_ERROR (New entries suppressed)'}",
         f"Gate   : UNFILTERED (Flat Equal-Weight) | XME 20d Mom = {xme_mom20_today:+.2%} | Market: {'OPEN' if market_open else 'CLOSED'}",
         f"Model  : Q80 = {q80:.3f} | XME Price = ${xme_now:.2f} | Target XME Short = {target_xme} shares ({xme_rebal_status})",
         f"Sleeve : Realized = ${realized_total:+,.2f} | Open MTM = ${unrealized_total:+,.2f} | Gross Wt = {open_gross_wt:.1%}",
