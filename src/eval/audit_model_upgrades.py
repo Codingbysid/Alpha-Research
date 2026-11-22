@@ -216,6 +216,8 @@ def run_sleeve_simulation(
     extra_mask_col: str | None = None,
     all_dates: list[pd.Timestamp] | None = None,
     cost_rt: float = COST_RT,
+    *,
+    trade_records: list[dict] | None = None,
 ) -> tuple[pd.DataFrame, list[np.ndarray], list[list[float]]]:
     """Runs staggered non-overlapping books and returns book stats, step returns, and trade PnLs."""
     if all_dates is None:
@@ -312,6 +314,16 @@ def run_sleeve_simulation(
                 pnl = eq * w_i * trade_net_ret
                 step_pnl += pnl
                 trade_pnls.append(pnl)
+                if trade_records is not None:
+                    trade_records.append({
+                        "offset": offset,
+                        "trading_date": dt,
+                        "ticker": r["ticker"],
+                        "side": side,
+                        "weight": w_i,
+                        "net_ret": trade_net_ret,
+                        "net_bps": trade_net_ret * 10_000,
+                    })
 
             step_rets.append(step_pnl / eq)
             eq += step_pnl

@@ -6,9 +6,9 @@ Scorecard Generator for 11-Stock Dual-Sleeve OSINT Portfolio:
 
 Outputs:
 1. Exact 4-line terminal summary:
-   - Total Sharpe Ratio
-   - Total Alpha (annualized % and cumulative %, beta-hedged vs XLE/XME)
-   - Total Profit Percentage (%)
+   - Mean Book Sharpe
+   - Hedged Return (annualized % and cumulative %, beta-hedged vs XLE/XME)
+   - Mean Book Profit Percentage (%)
    - Total BPS (cumulative portfolio bps and average bps per trade)
 2. Clean visual scorecard chart saved to reports/figures/fig0_portfolio_scorecard.png.
 
@@ -26,14 +26,12 @@ import numpy as np
 import pandas as pd
 
 from src.eval.audit_model_upgrades import (
-    CLOUD_MAX,
-    EQ_WT_LEG,
     INITIAL_EQUITY,
-    MAX_GROSS_WT,
     load_datasets,
     run_sleeve_simulation,
 )
 
+TRADE_COLUMNS = ["offset", "trading_date", "ticker", "side", "weight", "net_ret", "net_bps"]
 OUT_FIG = Path("reports/figures/fig0_portfolio_scorecard.png")
 
 
@@ -44,116 +42,40 @@ def extract_all_trades(
     all_dates: list[pd.Timestamp],
     extra_mask_col: str | None = None,
 ) -> pd.DataFrame:
-    """Extracts all executed trades across all 10 staggered non-overlapping books."""
-    holding_days = 10
-    cost_rt = 0.0025
-    sign = -1.0 if side == "SHORT" else 1.0
-    signal_col = "yoy_per_pass"
-    fwd_col = "fwd_ret_10d_excess"
-    date_to_idx = {d: i for i, d in enumerate(all_dates)}
-
-    q_cache: dict[pd.Timestamp, tuple[float, float] | None] = {}
-
-    def get_cutoffs(dt: pd.Timestamp) -> tuple[float, float] | None:
-        if dt in q_cache:
-            return q_cache[dt]
-        idx = date_to_idx[dt]
-        if idx < 10:
-            q_cache[dt] = None
-            return None
-        hist_end_dt = all_dates[idx - 10]
-        hist = df[
-            (df["trading_date"] <= hist_end_dt)
-            & (df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
-            & (df[signal_col].notna())
-            & (df[fwd_col].notna())
-        ]
-        if len(hist) < 40:
-            q_cache[dt] = None
-            return None
-        q80 = float(np.quantile(hist[signal_col].values, 0.80))
-        q95 = float(np.quantile(hist[signal_col].values, 0.95))
-        q_cache[dt] = (q80, q95)
-        return q_cache[dt]
-
-    all_trades: list[dict] = []
-    for off in range(holding_days):
-        for dt in all_dates[off::holding_days]:
-            idx = date_to_idx[dt]
-            if idx + holding_days >= len(all_dates):
-                continue
-            cuts = get_cutoffs(dt)
-            if cuts is None:
-                continue
-            q80, q95 = cuts
-
-            cond = (
-                (df["trading_date"] == dt)
-                & (df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
-                & (df[signal_col] >= q80)
-                & (df[fwd_col].notna())
-            )
-            if "regime_label" in df.columns:
-                cond &= df["regime_label"] == "IDIOSYNCRATIC"
-            if extra_mask_col is not None:
-                cond &= df[extra_mask_col].fillna(False)
-
-            cands = df[cond].copy()
-            if cands.empty:
-                continue
-
-            if weighting_mode == "conviction":
-                denom = max(1e-6, q95 - q80)
-                mult = np.clip((cands[signal_col].values - q80) / denom, 0.5, 1.5)
-                raw_w = EQ_WT_LEG * mult
-            else:
-                raw_w = np.full(len(cands), EQ_WT_LEG)
-
-            sc = min(1.0, MAX_GROSS_WT / max(1e-6, np.sum(raw_w)))
-            final_w = raw_w * sc
-
-            for w_i, (_, r) in zip(final_w, cands.iterrows()):
-                net_ret = sign * float(r[fwd_col]) - cost_rt
-                all_trades.append(
-                    {
-                        "offset": off,
-                        "trading_date": dt,
-                        "ticker": r["ticker"],
-                        "side": side,
-                        "weight": w_i,
-                        "net_ret": net_ret,
-                        "net_bps": net_ret * 10000.0,
-                    }
-                )
-
-    return pd.DataFrame(all_trades)
+    """Return trade-level attribution using the same simulator as the scorecard."""
+    records = []
+    run_sleeve_simulation(
+        df, side=side, holding_days=10, weighting_mode=weighting_mode,
+        extra_mask_col=extra_mask_col, all_dates=all_dates, trade_records=records,
+    )
+    return pd.DataFrame.from_records(records, columns=TRADE_COLUMNS)
 
 
 def run_scorecard() -> None:
     ref_df, steel_df, all_dates = load_datasets()
 
     # 1. Run Simulations
-    r_books_conv, r_steps_conv, _ = run_sleeve_simulation(
+    trade_records = []
+    _, r_steps_conv, _ = run_sleeve_simulation(
         ref_df,
         side="SHORT",
         holding_days=10,
         weighting_mode="conviction",
         extra_mask_col="crack_ok",
         all_dates=all_dates,
+        trade_records=trade_records,
     )
-    s_books_all, s_steps_all, _ = run_sleeve_simulation(
+    _, s_steps_all, _ = run_sleeve_simulation(
         steel_df,
         side="LONG",
         holding_days=10,
         weighting_mode="flat",
         extra_mask_col=None,
         all_dates=all_dates,
+        trade_records=trade_records,
     )
 
-    # 2. Extract Individual Trade Records
-    r_trades = extract_all_trades(ref_df, "SHORT", "conviction", all_dates, extra_mask_col="crack_ok")
-    s_trades = extract_all_trades(steel_df, "LONG", "flat", all_dates, extra_mask_col=None)
-    trades_df = pd.concat([r_trades, s_trades], ignore_index=True)
+    trades_df = pd.DataFrame.from_records(trade_records, columns=TRADE_COLUMNS)
 
     # 3. Combine 50/50 Dual-Sleeve Portfolio Across 10 Non-Overlapping Books
     comb_net_pcts: list[float] = []
@@ -163,7 +85,7 @@ def run_scorecard() -> None:
 
     for off in range(10):
         rc = 0.5 * r_steps_conv[off] + 0.5 * s_steps_all[off]
-        eq_curve = INITIAL_EQUITY * np.cumprod(1.0 + rc)
+        eq_curve = INITIAL_EQUITY * np.cumprod(np.r_[1.0, 1.0 + rc])
         final_eq = eq_curve[-1] if len(eq_curve) > 0 else INITIAL_EQUITY
         net_ret = (final_eq / INITIAL_EQUITY - 1.0) * 100.0
         peaks = np.maximum.accumulate(eq_curve)
@@ -190,12 +112,12 @@ def run_scorecard() -> None:
     n_trades = len(trades_df)
 
     years = (all_dates[-1] - all_dates[0]).days / 365.25
-    ann_alpha = ((1.0 + mean_net_pct / 100.0) ** (1.0 / years) - 1.0) * 100.0
+    annualized_return = ((1.0 + mean_net_pct / 100.0) ** (1.0 / years) - 1.0) * 100.0
 
     # 4. Print Simple 4-Line Terminal Output
-    print(f"Total Sharpe Ratio : {mean_sharpe:+.2f}")
-    print(f"Total Alpha        : {ann_alpha:+.2f}% annualized | {mean_net_pct:+.2f}% cumulative (beta-hedged vs XLE/XME)")
-    print(f"Total Profit (%)   : {mean_net_pct:+.2f}% (PF: {mean_pf:.2f} | Max DD: {mean_dd:.2f}% | {pos_books}/10 positive books)")
+    print(f"Mean Book Sharpe : {mean_sharpe:+.2f}")
+    print(f"Hedged Return        : {annualized_return:+.2f}% annualized | {mean_net_pct:+.2f}% cumulative (beta-hedged vs XLE/XME)")
+    print(f"Mean Book Profit (%)   : {mean_net_pct:+.2f}% (PF: {mean_pf:.2f} | Max DD: {mean_dd:.2f}% | {pos_books}/10 positive books)")
     print(f"Total BPS          : {cumul_bps:+.0f} bps cumulative portfolio | {avg_trade_bps:+.1f} bps average per trade ({n_trades:,} trades)")
 
     # 5. Build Stock-by-Stock Metrics for Chart
@@ -244,9 +166,9 @@ def run_scorecard() -> None:
 
     # --- TOP ROW: 4 Big KPI Cards ---
     cards_data = [
-        ("TOTAL SHARPE RATIO", f"{mean_sharpe:+.2f}", f"10-Book Ensemble (p=0.029)", "#1f4e79"),
-        ("TOTAL ALPHA", f"{ann_alpha:+.2f}% / yr", f"{mean_net_pct:+.2f}% Cumulative (Hedged)", "#2e8b57"),
-        ("TOTAL PROFIT (%)", f"{mean_net_pct:+.2f}%", f"PF: {mean_pf:.2f} | Max DD: {mean_dd:.2f}%", "#1f4e79"),
+        ("MEAN BOOK SHARPE", f"{mean_sharpe:+.2f}", "Mean across 10 start offsets", "#1f4e79"),
+        ("HEDGED RETURN", f"{annualized_return:+.2f}% / yr", f"{mean_net_pct:+.2f}% Cumulative (Hedged)", "#2e8b57"),
+        ("MEAN BOOK PROFIT (%)", f"{mean_net_pct:+.2f}%", f"PF: {mean_pf:.2f} | Max DD: {mean_dd:.2f}%", "#1f4e79"),
         ("TOTAL BPS", f"{avg_trade_bps:+.1f} bps", f"{cumul_bps:+.0f} bps Portfolio ({n_trades:,} trades)", "#2e8b57"),
     ]
 
