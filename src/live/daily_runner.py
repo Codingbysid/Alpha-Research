@@ -124,10 +124,13 @@ def build_live_panel() -> pd.DataFrame:
         frames.append(g)
     df = pd.concat(frames, ignore_index=True)
 
-    crack = pd.read_parquet(CRACK_PATH)[["trading_date", "crack_321", "crack_z60"]].sort_values("trading_date")
+    crack = pd.read_parquet(CRACK_PATH)[["trading_date", "crack_321", "crack_z60"]].copy()
+    # PyArrow may store timestamps as ns vs ms; merge_asof requires identical units.
+    df["trading_date"] = pd.to_datetime(df["trading_date"]).astype("datetime64[ns]")
+    crack["trading_date"] = pd.to_datetime(crack["trading_date"]).astype("datetime64[ns]")
     df = pd.merge_asof(
         df.sort_values("trading_date"),
-        crack,
+        crack.sort_values("trading_date"),
         on="trading_date",
         direction="backward",
     )

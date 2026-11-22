@@ -18,6 +18,7 @@ import requests
 from dotenv import load_dotenv
 
 from src.ingest.firms_archive import (
+    BRONZE_PATH,
     FACILITIES_PATH,
     load_facility_bboxes,
     normalize_firms_df,
@@ -69,6 +70,9 @@ def poll_live_firms(
     day_range: int = 2,
     sources: tuple[str, ...] = DEFAULT_SOURCES,
     facilities_path: Path = FACILITIES_PATH,
+    bronze_path: Path | None = None,
+    sector: str | None = None,
+    log_prefix: str = "live",
 ) -> tuple[int, bool]:
     load_dotenv()
     map_key = os.getenv("NASA_FIRMS_MAP_KEY", "").strip()
@@ -81,10 +85,14 @@ def poll_live_firms(
     if not 1 <= day_range <= 5:
         raise ValueError("NASA FIRMS Area API requires day_range between 1 and 5.")
 
-    bboxes = load_facility_bboxes(facilities_path=facilities_path, pad_deg=0.06)
+    dest_bronze = bronze_path if bronze_path is not None else BRONZE_PATH
+    bboxes = load_facility_bboxes(
+        facilities_path=facilities_path, pad_deg=0.06, sector=sector
+    )
     frames: list[pd.DataFrame] = []
     requests_ok = 0
     requests_failed = 0
+    sector_note = f" sector={sector}" if sector else ""
 
     for source in sources:
         for idx, bbox in enumerate(bboxes, start=1):
@@ -104,26 +112,35 @@ def poll_live_firms(
                     )
             except Exception as exc:
                 requests_failed += 1
-                print(f"[live][warn] {source} bbox #{idx} failed: {exc}")
+                print(f"[{log_prefix}][warn] {source} bbox #{idx} failed: {exc}")
             time.sleep(0.15)  # Polite pacing
 
     feed_ok = (requests_failed == 0) and (requests_ok > 0)
     if requests_failed > 0:
         print(
-            f"[live][error] FEED_ERROR: FIRMS poll encountered {requests_failed} failed/timeout requests "
-            f"(succeeded={requests_ok})."
+            f"[{log_prefix}][error] FEED_ERROR: FIRMS poll encountered {requests_failed} failed/timeout requests "
+            f"(succeeded={requests_ok},{sector_note} facilities={len(bboxes)})."
         )
 
     if not frames:
         if not feed_ok:
-            print("[live][error] FEED_ERROR: Poll failed due to API errors; suppressing new thermal detections.")
+            print(
+                f"[{log_prefix}][error] FEED_ERROR: Poll failed due to API errors; "
+                "suppressing new thermal detections."
+            )
             return 0, False
-        print("[live] Poll succeeded; zero new thermal detections across facilities.")
+        print(
+            f"[{log_prefix}] Poll succeeded; zero new thermal detections across "
+            f"{len(bboxes)} facilities{sector_note}."
+        )
         return 0, True
 
     batch_df = pd.concat(frames, ignore_index=True)
-    print(f"[live] Pulled {len(batch_df):,} raw detections across {len(sources)} sensors (feed_ok={feed_ok}).")
-    return upsert_bronze_parquet(batch_df), feed_ok
+    print(
+        f"[{log_prefix}] Pulled {len(batch_df):,} raw detections across {len(sources)} sensors "
+        f"({len(bboxes)} facilities{sector_note}, feed_ok={feed_ok}) -> {dest_bronze}"
+    )
+    return upsert_bronze_parquet(batch_df, bronze_path=dest_bronze), feed_ok
 
 
 def main() -> None:

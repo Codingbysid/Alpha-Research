@@ -367,7 +367,12 @@ def build_features(
         g["days_below_minus2_z"] = _consecutive_true_streak(severe_drop.fillna(False))
         return g
 
-    gold = gold.groupby("ticker", group_keys=False).apply(_add_rolling_features)
+    # Explicit per-ticker loop: pandas 2.2+ groupby.apply may drop grouping columns
+    # (include_groups default), which crashed Lambda with KeyError: 'ticker'.
+    gold = pd.concat(
+        [_add_rolling_features(grp) for _, grp in gold.groupby("ticker")],
+        ignore_index=True,
+    )
 
     gold_path.parent.mkdir(parents=True, exist_ok=True)
     gold.to_parquet(gold_path, index=False)

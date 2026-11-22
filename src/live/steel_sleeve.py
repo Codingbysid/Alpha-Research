@@ -25,7 +25,12 @@ from src.eval.audit_industrial import (
     HOLDING_DAYS,
     build_industrial_features,
 )
+from src.ingest.firms_live import poll_live_firms
 from src.live.alpaca_broker import AlpacaPaperBroker
+
+STEEL_TICKERS = ("CLF", "NUE", "STLD", "CMC")
+STEEL_SECTOR = "STEEL"
+STEEL_FIRMS_DAY_RANGE = 3
 
 STEEL_LEDGER_PARQUET = Path("data/live/steel_ledger.parquet")
 STEEL_LEDGER_CSV = Path("data/live/steel_ledger.csv")
@@ -123,6 +128,34 @@ def run_steel_sleeve(
     dry_run: bool = False,
     feed_ok: bool = True,
 ) -> dict:
+    order_errors: list[str] = []
+    if not skip_ingest:
+        print(
+            f"[steel] Polling NASA FIRMS NRT for {STEEL_SECTOR} facilities "
+            f"({', '.join(STEEL_TICKERS)}, last {STEEL_FIRMS_DAY_RANGE} days)..."
+        )
+        try:
+            n_rows, feed_ok = poll_live_firms(
+                day_range=STEEL_FIRMS_DAY_RANGE,
+                facilities_path=FACILITIES_PATH,
+                bronze_path=BRONZE_IND_PATH,
+                sector=STEEL_SECTOR,
+                log_prefix="steel",
+            )
+            print(
+                f"[steel] FIRMS upsert complete (rows_in_bronze={n_rows:,}, feed_ok={feed_ok})."
+            )
+        except Exception as exc:
+            feed_ok = False
+            print(f"[steel][error] FEED_ERROR: NASA FIRMS steel poll failed: {exc}")
+        if not feed_ok:
+            err_msg = (
+                "FEED_ERROR: NASA FIRMS steel polling incomplete/timeout; "
+                "suppressing new entries."
+            )
+            order_errors.append(err_msg)
+            print(f"[steel][error] {err_msg}")
+
     fac_gdf = gpd.read_file(FACILITIES_PATH)
     df, xme_px_map = build_steel_panel(fac_gdf)
 
@@ -137,7 +170,6 @@ def run_steel_sleeve(
     mom_ok = xme_mom20_today > 0.0
 
     ledger = load_steel_ledger()
-    order_errors: list[str] = []
     closed_today: list[str] = []
 
     # Check if market is open before routing live orders

@@ -41,7 +41,9 @@ CANONICAL_COLUMNS = [
 
 
 def load_facility_bboxes(
-    facilities_path: Path = FACILITIES_PATH, pad_deg: float = 0.08
+    facilities_path: Path = FACILITIES_PATH,
+    pad_deg: float = 0.08,
+    sector: str | None = None,
 ) -> list[tuple[float, float, float, float]]:
     """Returns (west, south, east, north) bounding boxes around each facility."""
     with facilities_path.open("r", encoding="utf-8") as f:
@@ -49,8 +51,13 @@ def load_facility_bboxes(
 
     bboxes: list[tuple[float, float, float, float]] = []
     for feat in gj["features"]:
+        props = feat.get("properties") or {}
+        if sector is not None and props.get("sector") != sector:
+            continue
         lon, lat = feat["geometry"]["coordinates"]
         bboxes.append((lon - pad_deg, lat - pad_deg, lon + pad_deg, lat + pad_deg))
+    if sector is not None and not bboxes:
+        raise ValueError(f"No facilities with sector={sector!r} in {facilities_path}")
     return bboxes
 
 
