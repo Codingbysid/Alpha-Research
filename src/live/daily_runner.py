@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 from alpaca.common.exceptions import APIError
 from alpaca.trading.enums import OrderSide
-from src.live.alpaca_broker import AlpacaPaperBroker
+from src.live.alpaca_broker import AlpacaPaperBroker, resolve_expected_session
 from src.ingest.energy_macro import CRACK_PATH, build_crack_spread
 from src.ingest.firms_live import poll_live_firms
 from src.ingest.market_data import build_market_panel
@@ -272,6 +272,15 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     all_dates = sorted(df["trading_date"].unique())
     as_of_dt = all_dates[-1]
     as_of_str = str(pd.Timestamp(as_of_dt).date())
+    expected_session = resolve_expected_session(broker)
+    signal_fresh = as_of_str == expected_session
+    if not signal_fresh:
+        err_msg = (
+            f"STALE_SIGNAL: refiners signal_as_of_date={as_of_str} != session={expected_session}; "
+            "suppressing new entries."
+        )
+        order_errors.append(err_msg)
+        print(f"[live][error] {err_msg}")
     embargo_dt = all_dates[-1 - HOLDING_DAYS]
 
     today_df = df[df["trading_date"] == as_of_dt].copy()
@@ -366,7 +375,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     crack_ok = pd.notna(crack_z60) and (crack_z60 <= CRACK_Z60_MAX)
 
     new_entries: list[dict] = []
-    if reg_mult > 0 and crack_ok and feed_ok:
+    if reg_mult > 0 and crack_ok and feed_ok and signal_fresh:
         cands = today_df[
             (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
             & (today_df["yoy_per_pass"] >= q80)
@@ -475,7 +484,9 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     # 4. Print Desk Blotter
     lines = [
         f"=== OSINT SHORT-Q5 DAILY BLOTTER | AS OF {as_of_str} (run {datetime.now(timezone.utc).strftime('%H:%M UTC')}) ===",
-        f"Signal : Refiners signal_as_of_date = {as_of_str} | Feed: {'OK' if feed_ok else 'FEED_ERROR (New entries suppressed)'}",
+        f"Signal : Refiners signal_as_of_date = {as_of_str} | Session: {expected_session} | "
+        f"Fresh: {'OK' if signal_fresh else 'STALE (New entries suppressed)'} | "
+        f"Feed: {'OK' if feed_ok else 'FEED_ERROR (New entries suppressed)'}",
         f"Broker : {broker_status} | XLE Hedge Rebal: {xle_rebal_status}",
         f"Sync   : {' | '.join(reconcile_msgs)}",
         f"Errors : {', '.join(order_errors) if order_errors else 'None'}",
@@ -540,6 +551,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
         skip_ingest=skip_ingest,
         dry_run=dry_run,
         feed_ok=feed_ok,
+        expected_session=expected_session,
     )
     if steel_res.get("order_errors"):
         order_errors.extend(steel_res["order_errors"])

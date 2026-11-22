@@ -26,7 +26,7 @@ from src.eval.audit_industrial import (
     build_industrial_features,
 )
 from src.ingest.firms_live import poll_live_firms
-from src.live.alpaca_broker import AlpacaPaperBroker
+from src.live.alpaca_broker import AlpacaPaperBroker, resolve_expected_session
 
 STEEL_TICKERS = ("CLF", "NUE", "STLD", "CMC")
 STEEL_SECTOR = "STEEL"
@@ -127,6 +127,7 @@ def run_steel_sleeve(
     skip_ingest: bool = False,
     dry_run: bool = False,
     feed_ok: bool = True,
+    expected_session: str | None = None,
 ) -> dict:
     order_errors: list[str] = []
     if not skip_ingest:
@@ -162,6 +163,15 @@ def run_steel_sleeve(
     all_dates = sorted(df["trading_date"].unique())
     as_of_dt = all_dates[-1]
     as_of_str = str(pd.Timestamp(as_of_dt).date())
+    session = expected_session or resolve_expected_session(broker)
+    signal_fresh = as_of_str == session
+    if not signal_fresh:
+        err_msg = (
+            f"STALE_SIGNAL: steel signal_as_of_date={as_of_str} != session={session}; "
+            "suppressing new entries."
+        )
+        order_errors.append(err_msg)
+        print(f"[steel][error] {err_msg}")
     embargo_dt = all_dates[-1 - HOLDING_DAYS]
 
     today_df = df[df["trading_date"] == as_of_dt].copy()
@@ -248,7 +258,7 @@ def run_steel_sleeve(
             (today_df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
             & (today_df["yoy_per_pass"] >= q80)
         ]
-        if feed_ok
+        if feed_ok and signal_fresh
         else today_df.iloc[0:0]
     )
     for _, row in cands.iterrows():
@@ -343,7 +353,9 @@ def run_steel_sleeve(
     # 4. Print Sleeve Blotter
     lines = [
         f"\n=== STEEL LONG-Q5 SLEEVE BLOTTER | AS OF {as_of_str} ===",
-        f"Signal : Steel signal_as_of_date = {as_of_str} | Feed: {'OK' if feed_ok else 'FEED_ERROR (New entries suppressed)'}",
+        f"Signal : Steel signal_as_of_date = {as_of_str} | Session: {session} | "
+        f"Fresh: {'OK' if signal_fresh else 'STALE (New entries suppressed)'} | "
+        f"Feed: {'OK' if feed_ok else 'FEED_ERROR (New entries suppressed)'}",
         f"Gate   : UNFILTERED (Flat Equal-Weight) | XME 20d Mom = {xme_mom20_today:+.2%} | Market: {'OPEN' if market_open else 'CLOSED'}",
         f"Model  : Q80 = {q80:.3f} | XME Price = ${xme_now:.2f} | Target XME Short = {target_xme} shares ({xme_rebal_status})",
         f"Sleeve : Realized = ${realized_total:+,.2f} | Open MTM = ${unrealized_total:+,.2f} | Gross Wt = {open_gross_wt:.1%}",

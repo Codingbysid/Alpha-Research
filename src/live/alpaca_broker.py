@@ -7,11 +7,52 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from alpaca.common.exceptions import APIError
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, TimeInForce
 from alpaca.trading.requests import MarketOrderRequest
+
+NY_TZ = ZoneInfo("America/New_York")
+CASH_CLOSE = (16, 0)  # 16:00 ET; after this the next executable session is tomorrow
+
+
+def _as_ny_date(dt: datetime | date | str) -> str:
+    if isinstance(dt, date) and not isinstance(dt, datetime):
+        return dt.isoformat()
+    if isinstance(dt, str):
+        dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+    if getattr(dt, "tzinfo", None) is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(NY_TZ).date().isoformat()
+
+
+def ny_calendar_session_date(now: datetime | None = None) -> str:
+    """NYSE weekday fallback when the Alpaca clock is unavailable. Ignores holidays."""
+    now = now or datetime.now(NY_TZ)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=NY_TZ)
+    else:
+        now = now.astimezone(NY_TZ)
+    d = now.date()
+    weekday = now.weekday()
+    after_close = (now.hour, now.minute) >= CASH_CLOSE
+    if weekday >= 5:
+        d = d + timedelta(days=(7 - weekday))  # Sat/Sun -> Monday
+    elif after_close:
+        d = d + timedelta(days=1)
+        if d.weekday() >= 5:
+            d = d + timedelta(days=(7 - d.weekday()))
+    return d.isoformat()
+
+
+def resolve_expected_session(broker: "AlpacaPaperBroker | None") -> str:
+    """Date of the US cash session we are allowed to open into."""
+    if broker is not None:
+        return broker.expected_session_date()
+    return ny_calendar_session_date()
 
 
 @dataclass
@@ -34,6 +75,19 @@ class AlpacaPaperBroker:
         except Exception as exc:
             print(f"[broker][warn] Could not fetch market clock: {exc}")
             return False
+
+    def expected_session_date(self) -> str:
+        """
+        NY date of the session we may open positions into:
+        today's date while the cash market is open, otherwise next_open.
+        """
+        try:
+            clock = self.client.get_clock()
+            raw = clock.timestamp if bool(clock.is_open) else clock.next_open
+            return _as_ny_date(raw)
+        except Exception as exc:
+            print(f"[broker][warn] Could not resolve session date: {exc}")
+            return ny_calendar_session_date()
 
     def _submit_qty(
         self,
