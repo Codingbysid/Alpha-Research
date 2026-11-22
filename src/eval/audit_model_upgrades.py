@@ -267,12 +267,11 @@ def run_sleeve_simulation(
                 continue
             q80, q95 = cuts
 
-            # Candidate filter
+            # Candidate filter: strictly entry-time features (no fwd_col lookahead)
             cond = (
                 (df["trading_date"] == dt)
                 & (df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
                 & (df[signal_col] >= q80)
-                & (df[fwd_col].notna())
             )
             if "regime_label" in df.columns:
                 cond &= df["regime_label"] == "IDIOSYNCRATIC"
@@ -308,6 +307,8 @@ def run_sleeve_simulation(
 
             step_pnl = 0.0
             for w_i, (_, r) in zip(final_w, cands.iterrows()):
+                if pd.isna(r[fwd_col]):
+                    continue
                 trade_net_ret = sign * float(r[fwd_col]) - cost_rt
                 pnl = eq * w_i * trade_net_ret
                 step_pnl += pnl
@@ -315,13 +316,16 @@ def run_sleeve_simulation(
 
             step_rets.append(step_pnl / eq)
             eq += step_pnl
-            peak = max(peak, eq)
-            dd = max(dd, (peak - eq) / peak)
+
+        b_arr = np.array(step_rets, dtype=float)
+        # Prepend INITIAL_EQUITY so opening-period losses register in maximum drawdown
+        curve = np.concatenate([[INITIAL_EQUITY], INITIAL_EQUITY * np.cumprod(1.0 + b_arr)])
+        peaks = np.maximum.accumulate(curve)
+        dd = np.max((peaks - curve) / peaks) if len(curve) > 0 else 0.0
 
         gp = sum(p for p in trade_pnls if p > 0)
         gl = abs(sum(p for p in trade_pnls if p < 0))
         pf = gp / gl if gl > 0 else np.nan
-        b_arr = np.array(step_rets, dtype=float)
         ann_factor = np.sqrt(252.0 / holding_days)
         b_sh = (float(np.mean(b_arr) / np.std(b_arr, ddof=1) * ann_factor)) if len(b_arr) > 1 and np.std(b_arr, ddof=1) > 0 else 0.0
         n_win = sum(1 for p in trade_pnls if p > 0)
@@ -393,8 +397,9 @@ def run_part1_combined(r_df: pd.DataFrame, s_df: pd.DataFrame, all_dates: list[p
         r1, r2 = r_steps[off], s_steps_all[off]
         rc = 0.5 * r1 + 0.5 * r2
         eq = INITIAL_EQUITY * np.prod(1.0 + rc)
-        peaks = np.maximum.accumulate(INITIAL_EQUITY * np.cumprod(1.0 + rc))
-        dd = np.max((peaks - INITIAL_EQUITY * np.cumprod(1.0 + rc)) / peaks) if len(rc) > 0 else 0.0
+        curve = np.concatenate([[INITIAL_EQUITY], INITIAL_EQUITY * np.cumprod(1.0 + rc)])
+        peaks = np.maximum.accumulate(curve)
+        dd = np.max((peaks - curve) / peaks) if len(curve) > 0 else 0.0
         sh = (np.mean(rc) / np.std(rc, ddof=1) * np.sqrt(25.2)) if len(rc) > 1 and np.std(rc, ddof=1) > 0 else 0.0
         pos = sum(p for p in rc if p > 0)
         neg = abs(sum(p for p in rc if p < 0))
@@ -410,8 +415,9 @@ def run_part1_combined(r_df: pd.DataFrame, s_df: pd.DataFrame, all_dates: list[p
         r1, r2 = r_steps[off], s_steps_mom[off]
         rc = 0.5 * r1 + 0.5 * r2
         eq = INITIAL_EQUITY * np.prod(1.0 + rc)
-        peaks = np.maximum.accumulate(INITIAL_EQUITY * np.cumprod(1.0 + rc))
-        dd = np.max((peaks - INITIAL_EQUITY * np.cumprod(1.0 + rc)) / peaks) if len(rc) > 0 else 0.0
+        curve = np.concatenate([[INITIAL_EQUITY], INITIAL_EQUITY * np.cumprod(1.0 + rc)])
+        peaks = np.maximum.accumulate(curve)
+        dd = np.max((peaks - curve) / peaks) if len(curve) > 0 else 0.0
         sh = (np.mean(rc) / np.std(rc, ddof=1) * np.sqrt(25.2)) if len(rc) > 1 and np.std(rc, ddof=1) > 0 else 0.0
         pos = sum(p for p in rc if p > 0)
         neg = abs(sum(p for p in rc if p < 0))
@@ -431,8 +437,9 @@ def run_part1_combined(r_df: pd.DataFrame, s_df: pd.DataFrame, all_dates: list[p
         r1, r2 = r_steps[off], s_steps_mom[off]
         rc = w_r * r1 + w_s * r2
         eq = INITIAL_EQUITY * np.prod(1.0 + rc)
-        peaks = np.maximum.accumulate(INITIAL_EQUITY * np.cumprod(1.0 + rc))
-        dd = np.max((peaks - INITIAL_EQUITY * np.cumprod(1.0 + rc)) / peaks) if len(rc) > 0 else 0.0
+        curve = np.concatenate([[INITIAL_EQUITY], INITIAL_EQUITY * np.cumprod(1.0 + rc)])
+        peaks = np.maximum.accumulate(curve)
+        dd = np.max((peaks - curve) / peaks) if len(curve) > 0 else 0.0
         sh = (np.mean(rc) / np.std(rc, ddof=1) * np.sqrt(25.2)) if len(rc) > 1 and np.std(rc, ddof=1) > 0 else 0.0
         pos = sum(p for p in rc if p > 0)
         neg = abs(sum(p for p in rc if p < 0))
@@ -451,8 +458,9 @@ def run_part1_combined(r_df: pd.DataFrame, s_df: pd.DataFrame, all_dates: list[p
         r1, r2 = r_steps_conv[off], s_steps_all[off]
         rc = 0.5 * r1 + 0.5 * r2
         eq = INITIAL_EQUITY * np.prod(1.0 + rc)
-        peaks = np.maximum.accumulate(INITIAL_EQUITY * np.cumprod(1.0 + rc))
-        dd = np.max((peaks - INITIAL_EQUITY * np.cumprod(1.0 + rc)) / peaks) if len(rc) > 0 else 0.0
+        curve = np.concatenate([[INITIAL_EQUITY], INITIAL_EQUITY * np.cumprod(1.0 + rc)])
+        peaks = np.maximum.accumulate(curve)
+        dd = np.max((peaks - curve) / peaks) if len(curve) > 0 else 0.0
         sh = (np.mean(rc) / np.std(rc, ddof=1) * np.sqrt(25.2)) if len(rc) > 1 and np.std(rc, ddof=1) > 0 else 0.0
         pos = sum(p for p in rc if p > 0)
         neg = abs(sum(p for p in rc if p < 0))

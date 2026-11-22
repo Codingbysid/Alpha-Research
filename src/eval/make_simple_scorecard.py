@@ -87,11 +87,11 @@ def extract_all_trades(
                 continue
             q80, q95 = cuts
 
+            # Candidate filter: strictly entry-time features (no fwd_col lookahead)
             cond = (
                 (df["trading_date"] == dt)
                 & (df["cloud_cover_pct_weighted"] <= CLOUD_MAX)
                 & (df[signal_col] >= q80)
-                & (df[fwd_col].notna())
             )
             if "regime_label" in df.columns:
                 cond &= df["regime_label"] == "IDIOSYNCRATIC"
@@ -113,6 +113,8 @@ def extract_all_trades(
             final_w = raw_w * sc
 
             for w_i, (_, r) in zip(final_w, cands.iterrows()):
+                if pd.isna(r[fwd_col]):
+                    continue
                 net_ret = sign * float(r[fwd_col]) - cost_rt
                 all_trades.append(
                     {
@@ -163,11 +165,11 @@ def run_scorecard() -> None:
 
     for off in range(10):
         rc = 0.5 * r_steps_conv[off] + 0.5 * s_steps_all[off]
-        eq_curve = INITIAL_EQUITY * np.cumprod(1.0 + rc)
-        final_eq = eq_curve[-1] if len(eq_curve) > 0 else INITIAL_EQUITY
+        curve = np.concatenate([[INITIAL_EQUITY], INITIAL_EQUITY * np.cumprod(1.0 + rc)])
+        final_eq = curve[-1] if len(curve) > 0 else INITIAL_EQUITY
         net_ret = (final_eq / INITIAL_EQUITY - 1.0) * 100.0
-        peaks = np.maximum.accumulate(eq_curve)
-        dd = np.max((peaks - eq_curve) / peaks) if len(eq_curve) > 0 else 0.0
+        peaks = np.maximum.accumulate(curve)
+        dd = np.max((peaks - curve) / peaks) if len(curve) > 0 else 0.0
         sh = (np.mean(rc) / np.std(rc, ddof=1) * np.sqrt(25.2)) if len(rc) > 1 and np.std(rc, ddof=1) > 0 else 0.0
 
         pos = sum(p for p in rc if p > 0)

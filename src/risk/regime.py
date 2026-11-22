@@ -93,7 +93,15 @@ def build_regimes(market_path: Path = MARKET_PATH, out_path: Path = OUT_PATH) ->
     daily["ovx_level"] = daily["ovx_level"].ffill()
     daily["wti_vol_20d"] = daily["wti_close"].pct_change().rolling(20).std() * np.sqrt(252)
 
-    use_ovx = daily["ovx_level"].notna().mean() > 0.8
+    # Strictly freeze macro volatility feature to 'ovx_level' (selected based strictly
+    # on the initial pre-2020 training window; never full-sample coverage) so appending
+    # future dates never alters historical regime labels.
+    init_train_mask = daily["trading_date"] <= "2019-12-31"
+    use_ovx = (
+        daily.loc[init_train_mask, "ovx_level"].notna().mean() > 0.8
+        if init_train_mask.any()
+        else True
+    )
     macro_col = "ovx_level" if use_ovx else "wti_vol_20d"
 
     valid = daily.dropna(subset=[macro_col, "refiner_vol_20d"]).copy()

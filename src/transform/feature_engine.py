@@ -268,6 +268,10 @@ def build_features(
     )
     matched["trading_date"] = assign_trading_date_et(matched["acq_datetime_utc"])
     matched["frp_night"] = np.where(matched["daynight"] == "N", matched["frp"], 0.0)
+    # Strictly filter to nighttime passes (daynight == 'N') BEFORE counting passes
+    # so daytime passes never inflate the nighttime denominator.
+    # Metric represents: "nighttime FRP per detected nighttime pass"
+    matched["night_acq_datetime"] = matched["acq_datetime_utc"].where(matched["daynight"] == "N")
 
     # Aggregate raw detections to (facility_id, trading_date)
     fac_agg = (
@@ -277,7 +281,7 @@ def build_features(
             frp_night_mw=("frp_night", "sum"),
             hotspot_count=("frp", "size"),
             max_bright_ti4=("bright_ti4", "max"),
-            satellite_pass_count=("acq_datetime_utc", "nunique"),
+            satellite_pass_count=("night_acq_datetime", "nunique"),
             has_nrt=("processing_mode", lambda s: (s == "NRT").any()),
         )
     )
