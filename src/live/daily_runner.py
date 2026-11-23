@@ -355,6 +355,32 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
     b_est = float(wins.mean() / abs(losses.mean())) if (len(wins) >= 5 and len(losses) >= 5) else 1.0
     raw_kelly_est = p_win_est - (1.0 - p_win_est) / max(b_est, 1e-6)
 
+    # 2b. Compute causal 60-day trailing XLE-hedged residual volatility for all 7 refiners
+    xle_ret = xle_px_map.pct_change()
+    hist_dts_60 = [d for d in all_dates if d <= as_of_dt][-60:]
+    xle_hist = xle_ret.loc[hist_dts_60]
+
+    all_ref_tickers = sorted(today_df["ticker"].unique())
+    sigmas: dict[str, float] = {}
+    for tkr in all_ref_tickers:
+        stk_df = df[(df["ticker"] == tkr) & (df["trading_date"].isin(hist_dts_60))].sort_values("trading_date")
+        stk_ret = stk_df.set_index("trading_date")["ret_1d"]
+        beta_val = today_df.loc[today_df["ticker"] == tkr, "beta_xle_60d"]
+        beta = float(beta_val.iloc[0]) if not beta_val.empty and pd.notna(beta_val.iloc[0]) else 1.0
+        aligned = pd.DataFrame({"stk": stk_ret, "xle": xle_hist}).dropna()
+        if len(aligned) >= 20:
+            resid = aligned["stk"] - beta * aligned["xle"]
+            sigmas[tkr] = float(resid.std(ddof=1))
+        else:
+            sigmas[tkr] = 0.02
+
+    med_sigma = float(np.median(list(sigmas.values()))) if sigmas else 0.02
+    vol_mults = {
+        tkr: min(1.0, med_sigma / sigmas[tkr]) if sigmas.get(tkr, 0.0) > 0.0 else 1.0
+        for tkr in all_ref_tickers
+    }
+    today_df["vol_mult"] = today_df["ticker"].map(lambda t: vol_mults.get(t, 1.0))
+
     # 3. Evaluate today's regime & candidates
     reg_label = str(today_df["regime_label"].iloc[0])
     p_panic = float(today_df["p_macro_panic"].iloc[0]) if pd.notna(today_df["p_macro_panic"].iloc[0]) else 1.0
@@ -395,8 +421,11 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
             yoy_val = float(row["yoy_per_pass"])
             conv_mult = float(np.clip((yoy_val - q80) / max(1e-6, q95 - q80), 0.5, 1.5))
 
+            # Residual-vol haircut sizing: min(1.0, median(sigma)/sigma_i)
+            vol_mult = float(vol_mults.get(tkr, 1.0))
+
             cvar_wt = MAX_CVAR_PCT / max(cvar_95, 1e-6)
-            raw_wt = cvar_wt * conv_mult * reg_mult
+            raw_wt = cvar_wt * conv_mult * vol_mult * reg_mult
             wt = min(raw_wt, MAX_SINGLE_WT)
             avail_wt = max(0.0, MAX_GROSS_WT - open_gross_wt)
             wt = min(wt, avail_wt)
@@ -435,7 +464,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
                     "xle_last_px": round(xle_now, 2),
                     "mtm_pnl_usd": round(-stock_notional * COST_RT, 2),
                     "realized_pnl_usd": 0.0,
-                    "notes": f"Short Q5 / Long beta*XLE (conv={conv_mult:.2f}, reg_mult={reg_mult:.2f}, crack_z60={crack_z60:+.2f})",
+                    "notes": f"Short Q5 / Long beta*XLE (conv={conv_mult:.2f}, vol={vol_mult:.2f}, reg_mult={reg_mult:.2f}, crack_z60={crack_z60:+.2f})",
                 }
             )
 
@@ -496,7 +525,7 @@ def run_daily(base_equity: float = 25_000.0, skip_ingest: bool = False, dry_run:
         f"Model  : Q80={q80:.3f} | Q95={q95:.3f} | Est p_win={p_win_est:.3f} | b={b_est:.2f} | Raw Kelly={raw_kelly_est:+.3f}",
         "",
         "--- TODAY'S UNIVERSE SNAPSHOT ---",
-        today_df[["ticker", "yoy_per_pass", "cloud_cover_pct_weighted", "adj_close", "beta_xle_60d"]]
+        today_df[["ticker", "yoy_per_pass", "cloud_cover_pct_weighted", "adj_close", "beta_xle_60d", "vol_mult"]]
         .round(3)
         .to_string(index=False),
         "",

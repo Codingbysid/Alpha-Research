@@ -69,6 +69,9 @@ def run_daily_mtm_simulation(
     all_dates: list[pd.Timestamp],
     px_matrix: pd.DataFrame,
     execution_lag: int = 0,  # 0 for T+0 Close, 1 for T+1 Close
+    size_mult: float = 1.0,
+    num_books: int = NUM_BOOKS,
+    entry_stride: int | None = None,
 ) -> dict:
     """
     Executes a true daily marked-to-market backtest across 10 staggered books.
@@ -77,9 +80,10 @@ def run_daily_mtm_simulation(
     date_to_idx = {d: i for i, d in enumerate(all_dates)}
     n_days = len(all_dates)
 
-    # 1/10th of capital per staggered book
-    book_cap = {b: INITIAL_PORTFOLIO_CAPITAL / NUM_BOOKS for b in range(NUM_BOOKS)}
-    book_positions: dict[int, list[Position]] = {b: [] for b in range(NUM_BOOKS)}
+    # Equal capital split across staggered books; size_mult scales each ticket notional.
+    n_books = max(1, int(num_books))
+    book_cap = {b: INITIAL_PORTFOLIO_CAPITAL / n_books for b in range(n_books)}
+    book_positions: dict[int, list[Position]] = {b: [] for b in range(n_books)}
 
     # Precompute causal quantiles
     q_cache_ref: dict[pd.Timestamp, tuple[float, float] | None] = {}
@@ -139,11 +143,13 @@ def run_daily_mtm_simulation(
         if sig_idx >= 0:
             sig_dt = all_dates[sig_idx]
             # Determine which book enters on sig_dt
-            entering_book = sig_idx % NUM_BOOKS
+            entering_book = sig_idx % n_books
+            stride = n_books if entry_stride is None else max(1, int(entry_stride))
+            allow_entry = (sig_idx % stride) == 0 if entry_stride is not None else True
 
             # Check if this book has capacity and candidate signals
-            ref_cuts = get_ref_cutoffs(sig_dt)
-            steel_cut = get_steel_cutoffs(sig_dt)
+            ref_cuts = get_ref_cutoffs(sig_dt) if allow_entry else None
+            steel_cut = get_steel_cutoffs(sig_dt) if allow_entry else None
 
             new_positions: list[Position] = []
 
@@ -166,7 +172,9 @@ def run_daily_mtm_simulation(
                     w_ref = raw_w * sc
 
                     # Book capital currently available
-                    b_equity = book_cap[entering_book]
+                    b_equity = max(0.0, book_cap[entering_book])
+                    if b_equity <= 0:
+                        ref_cands = ref_cands.iloc[0:0]
                     for w_i, (_, r) in zip(w_ref, ref_cands.iterrows()):
                         exit_idx = min(t_idx + HOLDING_DAYS, n_days - 1)
                         exit_dt = all_dates[exit_idx]
@@ -176,7 +184,7 @@ def run_daily_mtm_simulation(
                             side="SHORT",
                             entry_date=dt,
                             exit_date=exit_dt,
-                            notional=b_equity * w_i * 0.5,  # 50% sleeve allocation
+                            notional=b_equity * w_i * 0.5 * size_mult,  # 50% sleeve allocation
                             beta=float(r["beta_60d"]) if pd.notna(r["beta_60d"]) else 1.0,
                             hedge_ticker="XLE",
                         )
@@ -197,7 +205,9 @@ def run_daily_mtm_simulation(
                     sc = min(1.0, MAX_GROSS_WT / max(1e-6, np.sum(raw_w)))
                     w_steel = raw_w * sc
 
-                    b_equity = book_cap[entering_book]
+                    b_equity = max(0.0, book_cap[entering_book])
+                    if b_equity <= 0:
+                        steel_cands = steel_cands.iloc[0:0]
                     for w_i, (_, r) in zip(w_steel, steel_cands.iterrows()):
                         exit_idx = min(t_idx + HOLDING_DAYS, n_days - 1)
                         exit_dt = all_dates[exit_idx]
@@ -207,7 +217,7 @@ def run_daily_mtm_simulation(
                             side="LONG",
                             entry_date=dt,
                             exit_date=exit_dt,
-                            notional=b_equity * w_i * 0.5,  # 50% sleeve allocation
+                            notional=b_equity * w_i * 0.5 * size_mult,  # 50% sleeve allocation
                             beta=float(r["beta_60d"]) if pd.notna(r["beta_60d"]) else 1.0,
                             hedge_ticker="XME",
                         )
@@ -226,6 +236,7 @@ def run_daily_mtm_simulation(
                     "daily_ret": 0.0,
                     "daily_pnl": 0.0,
                     "active_positions": 0,
+                    "gross_notional": 0.0,
                 }
             )
             continue
@@ -233,9 +244,10 @@ def run_daily_mtm_simulation(
         prev_dt = all_dates[t_idx - 1]
         daily_pnl = 0.0
         active_count = 0
+        daily_gross = 0.0
 
         # Mark positions to market across each of the 10 books
-        for b in range(NUM_BOOKS):
+        for b in range(n_books):
             surviving_positions: list[Position] = []
             for pos in book_positions[b]:
                 # Check if position was already open yesterday
@@ -276,6 +288,7 @@ def run_daily_mtm_simulation(
 
                 daily_pnl += dollar_pnl
                 book_cap[b] += dollar_pnl
+                daily_gross += abs(pos.notional)
 
                 # Keep position if still active
                 if dt < pos.exit_date:
@@ -284,8 +297,22 @@ def run_daily_mtm_simulation(
             book_positions[b] = surviving_positions
 
         prev_equity = daily_records[-1]["portfolio_equity"]
-        current_equity = prev_equity + daily_pnl
-        daily_ret = daily_pnl / prev_equity if prev_equity > 0 else 0.0
+        if prev_equity <= 0:
+            current_equity = 0.0
+            daily_ret = 0.0
+            daily_pnl = 0.0
+            for b in range(n_books):
+                book_positions[b] = []
+                book_cap[b] = 0.0
+        else:
+            current_equity = prev_equity + daily_pnl
+            daily_ret = daily_pnl / prev_equity
+            if current_equity <= 0:
+                current_equity = 0.0
+                daily_ret = -1.0
+                for b in range(n_books):
+                    book_positions[b] = []
+                    book_cap[b] = 0.0
 
         daily_records.append(
             {
@@ -294,6 +321,7 @@ def run_daily_mtm_simulation(
                 "daily_ret": daily_ret,
                 "daily_pnl": daily_pnl,
                 "active_positions": active_count,
+                "gross_notional": daily_gross,
             }
         )
 
@@ -324,22 +352,23 @@ def run_daily_mtm_simulation(
     gross_loss = float(abs(d_rets[d_rets < 0].sum()))
     pf = gross_win / gross_loss if gross_loss > 0 else np.nan
 
-    # Factor regression with Newey-West HAC
-    spy_ret = px_matrix["SPY"].pct_change().loc[d_rets.index].fillna(0.0)
-    xle_ret = px_matrix["XLE"].pct_change().loc[d_rets.index].fillna(0.0)
-    xme_ret = px_matrix["XME"].pct_change().loc[d_rets.index].fillna(0.0)
-
-    X = pd.DataFrame({"const": 1.0, "SPY": spy_ret, "XLE": xle_ret, "XME": xme_ret})
-    ols = sm.OLS(d_rets, X).fit(cov_type="HAC", cov_kwds={"maxlags": 10})
-
-    alpha_daily = float(ols.params["const"])
-    alpha_ann = alpha_daily * 252.0 * 100.0
-    alpha_t = float(ols.tvalues["const"])
-    alpha_p = float(ols.pvalues["const"])
-
-    beta_spy = float(ols.params["SPY"])
-    beta_xle = float(ols.params["XLE"])
-    beta_xme = float(ols.params["XME"])
+    # Factor regression with Newey-West HAC (skipped if the path ruined / degenerate)
+    alpha_ann = alpha_t = alpha_p = beta_spy = beta_xle = beta_xme = float("nan")
+    try:
+        spy_ret = px_matrix["SPY"].pct_change().loc[d_rets.index].fillna(0.0)
+        xle_ret = px_matrix["XLE"].pct_change().loc[d_rets.index].fillna(0.0)
+        xme_ret = px_matrix["XME"].pct_change().loc[d_rets.index].fillna(0.0)
+        X = pd.DataFrame({"const": 1.0, "SPY": spy_ret, "XLE": xle_ret, "XME": xme_ret})
+        ols = sm.OLS(d_rets, X).fit(cov_type="HAC", cov_kwds={"maxlags": 10})
+        alpha_daily = float(ols.params["const"])
+        alpha_ann = alpha_daily * 252.0 * 100.0
+        alpha_t = float(ols.tvalues["const"])
+        alpha_p = float(ols.pvalues["const"])
+        beta_spy = float(ols.params["SPY"])
+        beta_xle = float(ols.params["XLE"])
+        beta_xme = float(ols.params["XME"])
+    except Exception:
+        pass
 
     return {
         "daily_df": res_df,
