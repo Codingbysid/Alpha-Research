@@ -1,0 +1,43 @@
+{
+  "refiners_research_10book": {
+    "sharpe": 0.6260005819919315,
+    "cum_net_ret_pct": 4.137390673613368,
+    "max_dd_pct": 1.2959628723023906,
+    "episodes": 563
+  },
+  "refiners_paper": {
+    "sharpe_25bps": 0.4035740208521346,
+    "cum_net_ret_25bps": 8.361035846375465,
+    "max_dd_25bps": 4.460028149104255,
+    "episodes": 207,
+    "worst_day_pct": -0.8031938847661217,
+    "stk_gross_pct": 5.218376150873192,
+    "etf_gross_pct": 5.9547177161478535,
+    "sharpe_75bps": 0.12967942265722518,
+    "cum_net_ret_75bps": 2.688660970376302
+  },
+  "steel_paper": {
+    "sharpe_25bps": 0.3338825858919685,
+    "cum_net_ret_25bps": 8.857022710741528,
+    "max_dd_25bps": 6.174411753488657,
+    "episodes": 182,
+    "worst_day_pct": -1.114594921912571,
+    "stk_gross_pct": 8.371665133394664,
+    "etf_gross_pct": 7.733071821560318,
+    "sharpe_75bps": -0.009113493109204802,
+    "cum_net_ret_75bps": -0.24297728925847303
+  },
+  "combined_paper": {
+    "sharpe_25bps": 0.5127148346823694,
+    "cum_net_ret_25bps": 17.218058557116994,
+    "max_dd_25bps": 6.418372361851003,
+    "episodes": 389,
+    "worst_day_pct": -1.1725522765584695,
+    "stk_gross_pct": 13.590041284267857,
+    "etf_gross_pct": 13.687789537708172,
+    "sharpe_75bps": 0.07253577165642262,
+    "cum_net_ret_75bps": 2.445683681117828,
+    "sleeve_correlation": -0.004689785374777636,
+    "sleeve_correlation_pval": 0.8270066945417222
+  }
+}

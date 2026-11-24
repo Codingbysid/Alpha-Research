@@ -1,0 +1,245 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "clf_indiana_harbor",
+        "facility_name": "Cleveland-Cliffs Indiana Harbor",
+        "ticker": "CLF",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 400000,
+        "buffer_km": 2.5,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.428,
+          41.664
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "clf_burns_harbor",
+        "facility_name": "Cleveland-Cliffs Burns Harbor",
+        "ticker": "CLF",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 350000,
+        "buffer_km": 2.5,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.138,
+          41.637
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "clf_middletown",
+        "facility_name": "Cleveland-Cliffs Middletown Works",
+        "ticker": "CLF",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 250000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.383,
+          39.478
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "nue_berkeley",
+        "facility_name": "Nucor Steel Berkeley SC",
+        "ticker": "NUE",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 300000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.886,
+          33.014
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "nue_crawfordsville",
+        "facility_name": "Nucor Steel Crawfordsville IN",
+        "ticker": "NUE",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 250000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -86.838,
+          39.976
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "nue_hickman",
+        "facility_name": "Nucor Steel Arkansas Hickman",
+        "ticker": "NUE",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 300000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -89.714,
+          35.936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "stld_butler",
+        "facility_name": "Steel Dynamics Butler IN",
+        "ticker": "STLD",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 300000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.921,
+          41.367
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "stld_columbus",
+        "facility_name": "Steel Dynamics Columbus MS",
+        "ticker": "STLD",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 300000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.571,
+          33.441
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "cmc_birmingham",
+        "facility_name": "Commercial Metals Birmingham AL",
+        "ticker": "CMC",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 200000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -86.781,
+          33.583
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "cmc_cayce",
+        "facility_name": "Commercial Metals Cayce SC",
+        "ticker": "CMC",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 250000,
+        "buffer_km": 2.2,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.051,
+          33.963
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "cmc_durant",
+        "facility_name": "Commercial Metals Durant OK",
+        "ticker": "CMC",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 150000,
+        "buffer_km": 2.0,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -96.349,
+          33.982
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "facility_id": "cmc_seguin",
+        "facility_name": "Commercial Metals Seguin TX",
+        "ticker": "CMC",
+        "sector": "STEEL",
+        "hedge_etf": "XME",
+        "capacity_bpd": 200000,
+        "buffer_km": 2.0,
+        "verified": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.034,
+          29.576
+        ]
+      }
+    }
+  ]
+}

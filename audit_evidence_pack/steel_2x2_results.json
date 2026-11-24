@@ -1,0 +1,86 @@
+{
+  "Orig_Coord__All_Pass": {
+    "sharpe": 0.286510746056468,
+    "cum_net_ret_pct": 9.178777045253513,
+    "max_dd_pct": 17.66544683595694,
+    "avg_gross_pct": 10.208271582618362,
+    "total_episodes": 223,
+    "total_q5_triggers": 408,
+    "total_matched": 114173,
+    "ticker_matched": {
+      "CLF": 90520,
+      "CMC": 6974,
+      "NUE": 235,
+      "STLD": 16444
+    },
+    "q5_triggers_by_ticker": {
+      "CLF": 137,
+      "NUE": 48,
+      "STLD": 155,
+      "CMC": 68
+    }
+  },
+  "Orig_Coord__Night_Pass": {
+    "sharpe": 0.40277176233661166,
+    "cum_net_ret_pct": 12.908384200505019,
+    "max_dd_pct": 15.215779205743143,
+    "avg_gross_pct": 10.208154059109303,
+    "total_episodes": 223,
+    "total_q5_triggers": 413,
+    "total_matched": 114173,
+    "ticker_matched": {
+      "CLF": 90520,
+      "CMC": 6974,
+      "NUE": 235,
+      "STLD": 16444
+    },
+    "q5_triggers_by_ticker": {
+      "CLF": 137,
+      "NUE": 48,
+      "STLD": 159,
+      "CMC": 69
+    }
+  },
+  "Verif_Coord__All_Pass": {
+    "sharpe": 0.5455875112809468,
+    "cum_net_ret_pct": 16.646179362069372,
+    "max_dd_pct": 9.612521527731584,
+    "avg_gross_pct": 7.612947684614248,
+    "total_episodes": 167,
+    "total_q5_triggers": 259,
+    "total_matched": 202837,
+    "ticker_matched": {
+      "CLF": 103050,
+      "CMC": 18043,
+      "NUE": 49370,
+      "STLD": 32374
+    },
+    "q5_triggers_by_ticker": {
+      "CLF": 135,
+      "NUE": 39,
+      "STLD": 58,
+      "CMC": 27
+    }
+  },
+  "Verif_Coord__Night_Pass": {
+    "sharpe": 0.5466753861067317,
+    "cum_net_ret_pct": 16.568382522693874,
+    "max_dd_pct": 9.650171839343063,
+    "avg_gross_pct": 7.521319532841211,
+    "total_episodes": 165,
+    "total_q5_triggers": 259,
+    "total_matched": 202837,
+    "ticker_matched": {
+      "CLF": 103050,
+      "CMC": 18043,
+      "NUE": 49370,
+      "STLD": 32374
+    },
+    "q5_triggers_by_ticker": {
+      "CLF": 136,
+      "NUE": 39,
+      "STLD": 57,
+      "CMC": 27
+    }
+  }
+}
